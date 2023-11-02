@@ -1,4 +1,3 @@
-use indexmap::IndexMap;
 use std::str::Chars;
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone, Copy)]
@@ -10,23 +9,49 @@ pub enum Token {
     Exponent,
 }
 
+#[derive(Clone, Copy)]
+struct TokenMatcher {
+    token: Token,
+    match_str: &'static str,
+    is_word: bool,
+}
+
 pub struct Lexer<'a> {
     text: Chars<'a>,
-    match_token_map: IndexMap<&'static str, Token>,
+    match_tokens: Vec<TokenMatcher>,
 }
 
 impl Lexer<'_> {
     pub fn new<'a>(input_data: &'a str) -> Lexer<'a> {
-        let mut match_token_map = IndexMap::new();
-        match_token_map.insert("**", Token::Exponent);
-        match_token_map.insert("+", Token::Addition);
-        match_token_map.insert("-", Token::Subtraction);
-        match_token_map.insert("*", Token::Multiplication);
-        match_token_map.insert("/", Token::Division);
-
         Lexer {
             text: input_data.chars(),
-            match_token_map,
+            match_tokens: vec![
+                TokenMatcher {
+                    token: Token::Exponent,
+                    match_str: "**",
+                    is_word: false,
+                },
+                TokenMatcher {
+                    token: Token::Addition,
+                    match_str: "+",
+                    is_word: false,
+                },
+                TokenMatcher {
+                    token: Token::Subtraction,
+                    match_str: "-",
+                    is_word: false,
+                },
+                TokenMatcher {
+                    token: Token::Multiplication,
+                    match_str: "*",
+                    is_word: false,
+                },
+                TokenMatcher {
+                    token: Token::Division,
+                    match_str: "/",
+                    is_word: false,
+                },
+            ],
         }
     }
 
@@ -76,10 +101,10 @@ impl Lexer<'_> {
     }
 
     fn get_next_token(&mut self) -> Result<Option<Token>, LexerError> {
-        'check_next_token: for (&str, &token) in &self.match_token_map {
+        'check_next_token: for &token_matcher in &self.match_tokens {
             let mut it = self.text.clone();
 
-            for ch_str in str.chars() {
+            for ch_str in token_matcher.match_str.chars() {
                 match it.next() {
                     None => continue 'check_next_token,
                     Some(ch_text) => {
@@ -90,8 +115,8 @@ impl Lexer<'_> {
                 }
             }
 
-            self.text.advance_by(str.len()).unwrap();
-            return Ok(Some(token));
+            self.text.advance_by(token_matcher.match_str.len()).unwrap();
+            return Ok(Some(token_matcher.token));
         }
 
         Ok(None)
