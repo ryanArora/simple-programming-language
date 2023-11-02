@@ -1,7 +1,16 @@
+use crate::current_iterator::CurrentIterator;
 use std::str::Chars;
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum Token {
+    SimpleToken(SimpleToken),
+    Identifier(String),
+}
+
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub enum SimpleToken {
+    Let,
+    Mut,
     Addition,
     Subtraction,
     Multiplication,
@@ -10,44 +19,54 @@ pub enum Token {
 }
 
 #[derive(Clone, Copy)]
-struct TokenMatcher {
-    token: Token,
+struct SimpleTokenMatcher {
+    token: SimpleToken,
     match_str: &'static str,
     is_word: bool,
 }
 
 pub struct Lexer<'a> {
-    text: Chars<'a>,
-    match_tokens: Vec<TokenMatcher>,
+    text: CurrentIterator<Chars<'a>>,
+    match_tokens: Vec<SimpleTokenMatcher>,
 }
 
 impl Lexer<'_> {
     pub fn new<'a>(input_data: &'a str) -> Lexer<'a> {
         Lexer {
-            text: input_data.chars(),
+            text: CurrentIterator::new(input_data.chars()),
             match_tokens: vec![
-                TokenMatcher {
-                    token: Token::Exponent,
+                SimpleTokenMatcher {
+                    token: SimpleToken::Let,
+                    match_str: "let",
+                    is_word: true,
+                },
+                SimpleTokenMatcher {
+                    token: SimpleToken::Mut,
+                    match_str: "mut",
+                    is_word: true,
+                },
+                SimpleTokenMatcher {
+                    token: SimpleToken::Exponent,
                     match_str: "**",
                     is_word: false,
                 },
-                TokenMatcher {
-                    token: Token::Addition,
+                SimpleTokenMatcher {
+                    token: SimpleToken::Addition,
                     match_str: "+",
                     is_word: false,
                 },
-                TokenMatcher {
-                    token: Token::Subtraction,
+                SimpleTokenMatcher {
+                    token: SimpleToken::Subtraction,
                     match_str: "-",
                     is_word: false,
                 },
-                TokenMatcher {
-                    token: Token::Multiplication,
+                SimpleTokenMatcher {
+                    token: SimpleToken::Multiplication,
                     match_str: "*",
                     is_word: false,
                 },
-                TokenMatcher {
-                    token: Token::Division,
+                SimpleTokenMatcher {
+                    token: SimpleToken::Division,
                     match_str: "/",
                     is_word: false,
                 },
@@ -100,9 +119,17 @@ impl Lexer<'_> {
         return false;
     }
 
-    fn get_next_token(&mut self) -> Result<Option<Token>, LexerError> {
+    fn get_next_token_simple(&mut self) -> Result<Option<SimpleToken>, LexerError> {
         'check_next_token: for &token_matcher in &self.match_tokens {
             let mut it = self.text.clone();
+            let prev = it.current();
+
+            if token_matcher.is_word
+                && !prev.is_none()
+                && (prev.unwrap().is_alphanumeric() || prev.unwrap() == '_')
+            {
+                continue;
+            }
 
             for ch_str in token_matcher.match_str.chars() {
                 match it.next() {
@@ -115,8 +142,51 @@ impl Lexer<'_> {
                 }
             }
 
+            let after = it.next();
+            if token_matcher.is_word
+                && !after.is_none()
+                && (after.unwrap().is_alphanumeric() || after.unwrap() == '_')
+            {
+                continue;
+            }
+
             self.text.advance_by(token_matcher.match_str.len()).unwrap();
             return Ok(Some(token_matcher.token));
+        }
+
+        Ok(None)
+    }
+
+    fn get_next_token_identifier(&mut self) -> Result<Option<Token>, LexerError> {
+        let mut it = self.text.clone();
+        let first = it.next();
+
+        if first.is_none() || (!first.unwrap().is_alphabetic() && first.unwrap() != '_') {
+            return Ok(None);
+        }
+
+        let mut identifier = String::new();
+        identifier.push(first.unwrap());
+
+        while let Some(ch) = it.next() {
+            if !ch.is_alphanumeric() && ch != '_' {
+                break;
+            }
+
+            identifier.push(ch);
+        }
+
+        self.text.advance_by(identifier.len()).unwrap();
+        Ok(Some(Token::Identifier(identifier)))
+    }
+
+    fn get_next_token(&mut self) -> Result<Option<Token>, LexerError> {
+        if let Some(t) = self.get_next_token_simple()? {
+            return Ok(Some(Token::SimpleToken(t)));
+        }
+
+        if let Some(t) = self.get_next_token_identifier()? {
+            return Ok(Some(t));
         }
 
         Ok(None)
@@ -130,7 +200,7 @@ pub enum LexerError {
 
 #[cfg(test)]
 mod tests {
-    use super::{Lexer, Token};
+    use super::{Lexer, SimpleToken, Token};
 
     #[test]
     fn test_get_tokens_empty() {
@@ -143,7 +213,7 @@ mod tests {
     fn test_get_tokens_one() {
         let mut l = Lexer::new("+");
         let tokens = l.get_tokens().unwrap();
-        assert_eq!(tokens, vec![Token::Addition]);
+        assert_eq!(tokens, vec![Token::SimpleToken(SimpleToken::Addition)]);
     }
 
     #[test]
@@ -153,11 +223,11 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::Addition,
-                Token::Addition,
-                Token::Subtraction,
-                Token::Subtraction,
-                Token::Subtraction,
+                Token::SimpleToken(SimpleToken::Addition),
+                Token::SimpleToken(SimpleToken::Addition),
+                Token::SimpleToken(SimpleToken::Subtraction),
+                Token::SimpleToken(SimpleToken::Subtraction),
+                Token::SimpleToken(SimpleToken::Subtraction),
             ]
         );
     }
@@ -166,7 +236,40 @@ mod tests {
     fn test_get_tokens_width() {
         let mut l = Lexer::new("***");
         let tokens = l.get_tokens().unwrap();
-        assert_eq!(tokens, vec![Token::Exponent, Token::Multiplication]);
+        assert_eq!(
+            tokens,
+            vec![
+                Token::SimpleToken(SimpleToken::Exponent),
+                Token::SimpleToken(SimpleToken::Multiplication),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_get_tokens_identifier() {
+        let mut l = Lexer::new("let mut abacus");
+        let tokens = l.get_tokens().unwrap();
+        assert_eq!(
+            tokens,
+            vec![
+                Token::SimpleToken(SimpleToken::Let),
+                Token::SimpleToken(SimpleToken::Mut),
+                Token::Identifier("abacus".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_get_tokens_simple_word() {
+        let mut l = Lexer::new("letmut abacus");
+        let tokens = l.get_tokens().unwrap();
+        assert_eq!(
+            tokens,
+            vec![
+                Token::Identifier("letmut".to_string()),
+                Token::Identifier("abacus".to_string()),
+            ]
+        );
     }
 
     #[test]
@@ -176,10 +279,10 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::Addition,
-                Token::Subtraction,
-                Token::Multiplication,
-                Token::Addition
+                Token::SimpleToken(SimpleToken::Addition),
+                Token::SimpleToken(SimpleToken::Subtraction),
+                Token::SimpleToken(SimpleToken::Multiplication),
+                Token::SimpleToken(SimpleToken::Addition),
             ]
         );
     }

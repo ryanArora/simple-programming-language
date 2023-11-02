@@ -1,6 +1,7 @@
 #![feature(iter_advance_by)]
 #![feature(let_chains)]
 
+mod current_iterator;
 mod lexer;
 
 use lexer::Lexer;
@@ -24,5 +25,6 @@ fn main() {
 
     // Parse text input into tokens
     let mut l = Lexer::new(&input_data);
-    let _tokens = l.get_tokens().unwrap();
+    let tokens = l.get_tokens().unwrap();
+    println!("{:?}", tokens)
 }
