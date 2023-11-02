@@ -1,10 +1,9 @@
-mod analyze;
-mod lexer;
-mod parser;
+#![feature(iter_advance_by)]
+#![feature(let_chains)]
 
-use analyze::analyze;
+mod lexer;
+
 use lexer::Lexer;
-use parser::Parser;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 
@@ -24,13 +23,6 @@ fn main() {
     let input_data = read_to_string(args.input_file).unwrap();
 
     // Parse text input into tokens
-    let l = Lexer::new(input_data.chars());
-    let tokens = l.get_tokens().unwrap();
-
-    // Parse tokens into an AST
-    let p = Parser::new(tokens);
-    let ast = p.get_ast().unwrap();
-
-    // Semantic Analysis
-    analyze(ast).unwrap();
+    let mut l = Lexer::new(&input_data);
+    let _tokens = l.get_tokens().unwrap();
 }
