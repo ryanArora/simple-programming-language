@@ -5,6 +5,7 @@ use std::str::Chars;
 pub enum Token {
     SimpleToken(SimpleToken),
     Identifier(String),
+    StringLiteral(String),
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
@@ -16,6 +17,8 @@ pub enum SimpleToken {
     Multiplication,
     Division,
     Exponent,
+    Assignment,
+    Semicolon,
 }
 
 #[derive(Clone, Copy)]
@@ -68,6 +71,16 @@ impl Lexer<'_> {
                 SimpleTokenMatcher {
                     token: SimpleToken::Division,
                     match_str: "/",
+                    is_word: false,
+                },
+                SimpleTokenMatcher {
+                    token: SimpleToken::Assignment,
+                    match_str: "=",
+                    is_word: false,
+                },
+                SimpleTokenMatcher {
+                    token: SimpleToken::Semicolon,
+                    match_str: ";",
                     is_word: false,
                 },
             ],
@@ -180,12 +193,38 @@ impl Lexer<'_> {
         Ok(Some(Token::Identifier(identifier)))
     }
 
+    fn get_next_token_string_literal(&mut self) -> Result<Option<Token>, LexerError> {
+        let mut it = self.text.clone();
+        let first = it.next();
+
+        if first.is_none() || first.unwrap() != '"' {
+            return Ok(None);
+        }
+
+        let mut str = String::new();
+
+        while let Some(ch) = it.next() {
+            if ch == '"' {
+                self.text.advance_by(str.len() + 2).unwrap();
+                return Ok(Some(Token::StringLiteral(str)));
+            }
+
+            str.push(ch);
+        }
+
+        Err(LexerError::UnterminatedStringLiteral)
+    }
+
     fn get_next_token(&mut self) -> Result<Option<Token>, LexerError> {
         if let Some(t) = self.get_next_token_simple()? {
             return Ok(Some(Token::SimpleToken(t)));
         }
 
         if let Some(t) = self.get_next_token_identifier()? {
+            return Ok(Some(t));
+        }
+
+        if let Some(t) = self.get_next_token_string_literal()? {
             return Ok(Some(t));
         }
 
@@ -196,6 +235,7 @@ impl Lexer<'_> {
 #[derive(Debug)]
 pub enum LexerError {
     InvalidToken,
+    UnterminatedStringLiteral,
 }
 
 #[cfg(test)]
@@ -285,6 +325,49 @@ mod tests {
                 Token::SimpleToken(SimpleToken::Addition),
             ]
         );
+    }
+
+    #[test]
+    fn test_get_tokens_declaration_with_string_literal() {
+        let mut l: Lexer = Lexer::new("let mut a = \"abacus\";");
+        let tokens = l.get_tokens().unwrap();
+
+        assert_eq!(
+            tokens,
+            vec![
+                Token::SimpleToken(SimpleToken::Let),
+                Token::SimpleToken(SimpleToken::Mut),
+                Token::Identifier("a".to_string()),
+                Token::SimpleToken(SimpleToken::Assignment),
+                Token::StringLiteral("abacus".to_string()),
+                Token::SimpleToken(SimpleToken::Semicolon)
+            ]
+        );
+    }
+
+    #[test]
+    fn test_get_tokens_declaration_with_empty_string_literal() {
+        let mut l: Lexer = Lexer::new("let mut a = \"\";");
+        let tokens = l.get_tokens().unwrap();
+
+        assert_eq!(
+            tokens,
+            vec![
+                Token::SimpleToken(SimpleToken::Let),
+                Token::SimpleToken(SimpleToken::Mut),
+                Token::Identifier("a".to_string()),
+                Token::SimpleToken(SimpleToken::Assignment),
+                Token::StringLiteral("".to_string()),
+                Token::SimpleToken(SimpleToken::Semicolon)
+            ]
+        );
+    }
+
+    #[test]
+    fn test_get_tokens_empty_string_literal() {
+        let mut l: Lexer = Lexer::new("\"\"");
+        let tokens = l.get_tokens().unwrap();
+        assert_eq!(tokens, vec![Token::StringLiteral("".to_string()),]);
     }
 
     #[test]
