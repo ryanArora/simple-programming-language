@@ -239,14 +239,47 @@ impl Lexer<'_> {
         }
 
         let mut str = String::new();
+        let mut escape = false;
+        let mut num_chars = 0;
 
         while let Some(ch) = it.next() {
+            if escape {
+                if ch == '\\' {
+                    str.push('\\')
+                } else if ch == '\'' {
+                    str.push('\'');
+                } else if ch == '"' {
+                    str.push('"');
+                } else if ch == 'n' {
+                    str.push('\n');
+                } else if ch == 'r' {
+                    str.push('\r');
+                } else if ch == 't' {
+                    str.push('\t');
+                } else if ch == '0' {
+                    str.push('\0');
+                } else {
+                    return Err(LexerError::InvalidEscapeSequenceInStringLiteral);
+                }
+
+                escape = false;
+                num_chars += 1;
+                continue;
+            }
+
+            if ch == '\\' {
+                escape = true;
+                num_chars += 1;
+                continue;
+            }
+
             if ch == '"' {
-                self.text.advance_by(str.len() + 2).unwrap();
+                self.text.advance_by(num_chars + 2).unwrap();
                 return Ok(Some(Token::StringLiteral(str)));
             }
 
             str.push(ch);
+            num_chars += 1;
         }
 
         Err(LexerError::UnterminatedStringLiteral)
@@ -305,6 +338,7 @@ impl Lexer<'_> {
 #[derive(Debug)]
 pub enum LexerError {
     InvalidToken,
+    InvalidEscapeSequenceInStringLiteral,
     UnterminatedStringLiteral,
     TooLargeIntegerLiteral,
 }
@@ -453,6 +487,14 @@ mod tests {
                 Token::IntegerLiteral(123),
             ]
         );
+    }
+
+    #[test]
+    fn test_get_tokens_string_literal_escape_sequence() {
+        let mut tokens = Lexer::new("\"\\\"\"").get_tokens().unwrap();
+        assert_eq!(tokens, vec![Token::StringLiteral("\"".to_string())]);
+        tokens = Lexer::new("\"\\n\"").get_tokens().unwrap();
+        assert_eq!(tokens, vec![Token::StringLiteral("\n".to_string())]);
     }
 
     #[test]
