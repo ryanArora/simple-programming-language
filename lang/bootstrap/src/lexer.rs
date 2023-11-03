@@ -1,7 +1,7 @@
 use crate::current_iterator::CurrentIterator;
 use std::str::Chars;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum Token {
     SimpleToken(SimpleToken),
     Identifier(String),
@@ -337,6 +337,60 @@ impl Lexer<'_> {
         }
     }
 
+    fn get_next_token_char_literal(&mut self) -> Result<Option<Token>, LexerError> {
+        let mut it = self.text.clone();
+        let mut num_chars = 3;
+
+        let first = it.next();
+        if first.is_none() || first.unwrap() != '\'' {
+            return Ok(None);
+        }
+
+        let mut ch = it.next();
+        if ch.is_none() {
+            return Err(LexerError::UnterminatedCharLiteral);
+        }
+
+        if ch.unwrap() == '\'' {
+            return Err(LexerError::EmptyCharLiteral);
+        }
+
+        if ch.unwrap() == '\\' {
+            num_chars += 1;
+
+            let escape_char = it.next();
+            if escape_char.is_none() {
+                return Err(LexerError::UnterminatedCharLiteral);
+            }
+
+            if escape_char.unwrap() == '\\' {
+                ch = Some('\\');
+            } else if escape_char.unwrap() == '\'' {
+                ch = Some('\'');
+            } else if escape_char.unwrap() == '"' {
+                ch = Some('"');
+            } else if escape_char.unwrap() == 'n' {
+                ch = Some('\n');
+            } else if escape_char.unwrap() == 'r' {
+                ch = Some('\r');
+            } else if escape_char.unwrap() == 't' {
+                ch = Some('\t');
+            } else if escape_char.unwrap() == '0' {
+                ch = Some('\0');
+            } else {
+                return Err(LexerError::InvalidEscapeSequenceInCharLiteral);
+            }
+        }
+
+        let last = it.next();
+        if last.is_none() || last.unwrap() != '\'' {
+            return Err(LexerError::UnterminatedCharLiteral);
+        }
+
+        self.text.advance_by(num_chars).unwrap();
+        Ok(Some(Token::IntegerLiteral(ch.unwrap() as u64)))
+    }
+
     fn get_next_token(&mut self) -> Result<Option<Token>, LexerError> {
         if let Some(t) = self.get_next_token_simple()? {
             return Ok(Some(Token::SimpleToken(t)));
@@ -354,6 +408,10 @@ impl Lexer<'_> {
             return Ok(Some(t));
         }
 
+        if let Some(t) = self.get_next_token_char_literal()? {
+            return Ok(Some(t));
+        }
+
         Ok(None)
     }
 }
@@ -362,6 +420,9 @@ impl Lexer<'_> {
 pub enum LexerError {
     InvalidToken,
     InvalidEscapeSequenceInStringLiteral,
+    InvalidEscapeSequenceInCharLiteral,
+    EmptyCharLiteral,
+    UnterminatedCharLiteral,
     UnterminatedStringLiteral,
     TooLargeIntegerLiteral,
 }
@@ -534,6 +595,18 @@ mod tests {
         assert_eq!(tokens, vec![Token::StringLiteral("\"".to_string())]);
         tokens = Lexer::new("\"\\n\"").get_tokens().unwrap();
         assert_eq!(tokens, vec![Token::StringLiteral("\n".to_string())]);
+    }
+
+    #[test]
+    fn test_get_tokens_char_literal() {
+        let tokens = Lexer::new("'A' '\\\\'").get_tokens().unwrap();
+        assert_eq!(
+            tokens,
+            vec![
+                Token::IntegerLiteral('A' as u64),
+                Token::IntegerLiteral('\\' as u64)
+            ]
+        );
     }
 
     #[test]
