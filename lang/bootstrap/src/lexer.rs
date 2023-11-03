@@ -6,6 +6,7 @@ pub enum Token {
     SimpleToken(SimpleToken),
     Identifier(String),
     StringLiteral(String),
+    IntegerLiteral(u64),
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
@@ -215,6 +216,35 @@ impl Lexer<'_> {
         Err(LexerError::UnterminatedStringLiteral)
     }
 
+    fn get_next_token_integer_literal(&mut self) -> Result<Option<Token>, LexerError> {
+        let mut it = self.text.clone();
+        let mut num_str = String::new();
+
+        while let Some(ch) = it.next() {
+            if !ch.is_digit(10) {
+                if ch.is_alphanumeric() || ch == '_' {
+                    return Ok(None);
+                }
+
+                break;
+            }
+
+            num_str.push(ch);
+        }
+
+        if num_str.is_empty() {
+            return Ok(None);
+        }
+
+        match num_str.parse::<u64>() {
+            Err(_err) => Err(LexerError::TooLargeIntegerLiteral),
+            Ok(n) => {
+                self.text.advance_by(num_str.len()).unwrap();
+                Ok(Some(Token::IntegerLiteral(n)))
+            }
+        }
+    }
+
     fn get_next_token(&mut self) -> Result<Option<Token>, LexerError> {
         if let Some(t) = self.get_next_token_simple()? {
             return Ok(Some(Token::SimpleToken(t)));
@@ -228,6 +258,10 @@ impl Lexer<'_> {
             return Ok(Some(t));
         }
 
+        if let Some(t) = self.get_next_token_integer_literal()? {
+            return Ok(Some(t));
+        }
+
         Ok(None)
     }
 }
@@ -236,6 +270,7 @@ impl Lexer<'_> {
 pub enum LexerError {
     InvalidToken,
     UnterminatedStringLiteral,
+    TooLargeIntegerLiteral,
 }
 
 #[cfg(test)]
@@ -368,6 +403,20 @@ mod tests {
         let mut l: Lexer = Lexer::new("\"\"");
         let tokens = l.get_tokens().unwrap();
         assert_eq!(tokens, vec![Token::StringLiteral("".to_string()),]);
+    }
+
+    #[test]
+    fn test_get_tokens_integer_literals() {
+        let mut l: Lexer = Lexer::new("12334759837459 123");
+        let tokens = l.get_tokens().unwrap();
+
+        assert_eq!(
+            tokens,
+            vec![
+                Token::IntegerLiteral(12334759837459),
+                Token::IntegerLiteral(123),
+            ]
+        );
     }
 
     #[test]
