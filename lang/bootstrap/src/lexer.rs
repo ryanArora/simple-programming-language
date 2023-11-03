@@ -20,6 +20,12 @@ pub enum SimpleToken {
     Exponent,
     Assignment,
     Semicolon,
+    LParen,
+    RParen,
+    LBrace,
+    RBrace,
+    LBracket,
+    RBracket,
 }
 
 #[derive(Clone, Copy)]
@@ -82,6 +88,36 @@ impl Lexer<'_> {
                 SimpleTokenMatcher {
                     token: SimpleToken::Semicolon,
                     match_str: ";",
+                    is_word: false,
+                },
+                SimpleTokenMatcher {
+                    token: SimpleToken::LParen,
+                    match_str: "(",
+                    is_word: false,
+                },
+                SimpleTokenMatcher {
+                    token: SimpleToken::RParen,
+                    match_str: ")",
+                    is_word: false,
+                },
+                SimpleTokenMatcher {
+                    token: SimpleToken::LBrace,
+                    match_str: "{",
+                    is_word: false,
+                },
+                SimpleTokenMatcher {
+                    token: SimpleToken::RBrace,
+                    match_str: "}",
+                    is_word: false,
+                },
+                SimpleTokenMatcher {
+                    token: SimpleToken::LBracket,
+                    match_str: "[",
+                    is_word: false,
+                },
+                SimpleTokenMatcher {
+                    token: SimpleToken::RBracket,
+                    match_str: "]",
                     is_word: false,
                 },
             ],
