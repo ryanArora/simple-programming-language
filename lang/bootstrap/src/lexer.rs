@@ -286,11 +286,33 @@ impl Lexer<'_> {
     }
 
     fn get_next_token_integer_literal(&mut self) -> Result<Option<Token>, LexerError> {
+        let mut it_radix = self.text.clone();
+        let radix_first = it_radix.next();
+        let radix_second = it_radix.next();
+        let mut radix = 10;
         let mut it = self.text.clone();
+        let mut num_chars = 0;
+
+        if radix_first.is_some() && radix_first.unwrap() == '0' && radix_second.is_some() {
+            if radix_second.unwrap() == 'x' {
+                radix = 16;
+                num_chars += 2;
+                it = it_radix;
+            } else if radix_second.unwrap() == 'b' {
+                radix = 2;
+                num_chars += 2;
+                it = it_radix;
+            } else if radix_second.unwrap() == 'o' {
+                radix = 8;
+                num_chars += 2;
+                it = it_radix;
+            }
+        }
+
         let mut num_str = String::new();
 
         while let Some(ch) = it.next() {
-            if !ch.is_digit(10) {
+            if !ch.is_digit(radix) {
                 if ch.is_alphanumeric() || ch == '_' {
                     return Ok(None);
                 }
@@ -299,16 +321,17 @@ impl Lexer<'_> {
             }
 
             num_str.push(ch);
+            num_chars += 1;
         }
 
         if num_str.is_empty() {
             return Ok(None);
         }
 
-        match num_str.parse::<u64>() {
+        match u64::from_str_radix(&num_str, radix) {
             Err(_err) => Err(LexerError::TooLargeIntegerLiteral),
             Ok(n) => {
-                self.text.advance_by(num_str.len()).unwrap();
+                self.text.advance_by(num_chars).unwrap();
                 Ok(Some(Token::IntegerLiteral(n)))
             }
         }
@@ -485,6 +508,22 @@ mod tests {
             vec![
                 Token::IntegerLiteral(12334759837459),
                 Token::IntegerLiteral(123),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_get_tokens_integer_literals_base() {
+        let mut l: Lexer = Lexer::new("0xFE 0b011 123 0o223");
+        let tokens = l.get_tokens().unwrap();
+
+        assert_eq!(
+            tokens,
+            vec![
+                Token::IntegerLiteral(0xFE),
+                Token::IntegerLiteral(0b011),
+                Token::IntegerLiteral(123),
+                Token::IntegerLiteral(0o223),
             ]
         );
     }
