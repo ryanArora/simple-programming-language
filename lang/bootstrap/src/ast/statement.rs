@@ -1,6 +1,6 @@
 use crate::{
     ast::expression::Expression,
-    lexer::{Lexer, SimpleToken, Token},
+    lexer::{SimpleToken, Token},
     parser::Parser,
     syntax_error::SyntaxError,
 };
