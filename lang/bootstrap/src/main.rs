@@ -1,10 +1,12 @@
 #![feature(iter_advance_by)]
-#![feature(let_chains)]
 
+mod ast;
 mod current_iterator;
 mod lexer;
+mod parser;
+mod syntax_error;
 
-use lexer::Lexer;
+use parser::Parser;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 
@@ -23,8 +25,8 @@ fn main() {
     // Read input file into String
     let input_data = read_to_string(args.input_file).unwrap();
 
-    // Parse text input into tokens
-    let mut l = Lexer::new(&input_data);
-    let tokens = l.get_tokens().unwrap();
-    println!("{:?}", tokens)
+    let mut p = Parser::new(&input_data);
+    let ast = p.get_ast();
+
+    println!("{:?}", ast);
 }

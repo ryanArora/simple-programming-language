@@ -1,7 +1,8 @@
 use crate::current_iterator::CurrentIterator;
+use crate::syntax_error::SyntaxError;
 use std::str::Chars;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     SimpleToken(SimpleToken),
     Identifier(String),
@@ -9,7 +10,7 @@ pub enum Token {
     IntegerLiteral(u64),
 }
 
-#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum SimpleToken {
     Let,
     Mut,
@@ -28,108 +29,106 @@ pub enum SimpleToken {
     RBracket,
 }
 
-#[derive(Clone, Copy)]
 struct SimpleTokenMatcher {
     token: SimpleToken,
     match_str: &'static str,
     is_word: bool,
 }
 
+#[derive(Clone)]
 pub struct Lexer<'a> {
     text: CurrentIterator<Chars<'a>>,
-    match_tokens: Vec<SimpleTokenMatcher>,
 }
+
+const MATCH_TOKENS: [SimpleTokenMatcher; 15] = [
+    SimpleTokenMatcher {
+        token: SimpleToken::Let,
+        match_str: "let",
+        is_word: true,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Mut,
+        match_str: "mut",
+        is_word: true,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Exponent,
+        match_str: "**",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Addition,
+        match_str: "+",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Subtraction,
+        match_str: "-",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Multiplication,
+        match_str: "*",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Division,
+        match_str: "/",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Assignment,
+        match_str: "=",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Semicolon,
+        match_str: ";",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::LParen,
+        match_str: "(",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::RParen,
+        match_str: ")",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::LBrace,
+        match_str: "{",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::RBrace,
+        match_str: "}",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::LBracket,
+        match_str: "[",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::RBracket,
+        match_str: "]",
+        is_word: false,
+    },
+];
 
 impl Lexer<'_> {
     pub fn new<'a>(input_data: &'a str) -> Lexer<'a> {
         Lexer {
             text: CurrentIterator::new(input_data.chars()),
-            match_tokens: vec![
-                SimpleTokenMatcher {
-                    token: SimpleToken::Let,
-                    match_str: "let",
-                    is_word: true,
-                },
-                SimpleTokenMatcher {
-                    token: SimpleToken::Mut,
-                    match_str: "mut",
-                    is_word: true,
-                },
-                SimpleTokenMatcher {
-                    token: SimpleToken::Exponent,
-                    match_str: "**",
-                    is_word: false,
-                },
-                SimpleTokenMatcher {
-                    token: SimpleToken::Addition,
-                    match_str: "+",
-                    is_word: false,
-                },
-                SimpleTokenMatcher {
-                    token: SimpleToken::Subtraction,
-                    match_str: "-",
-                    is_word: false,
-                },
-                SimpleTokenMatcher {
-                    token: SimpleToken::Multiplication,
-                    match_str: "*",
-                    is_word: false,
-                },
-                SimpleTokenMatcher {
-                    token: SimpleToken::Division,
-                    match_str: "/",
-                    is_word: false,
-                },
-                SimpleTokenMatcher {
-                    token: SimpleToken::Assignment,
-                    match_str: "=",
-                    is_word: false,
-                },
-                SimpleTokenMatcher {
-                    token: SimpleToken::Semicolon,
-                    match_str: ";",
-                    is_word: false,
-                },
-                SimpleTokenMatcher {
-                    token: SimpleToken::LParen,
-                    match_str: "(",
-                    is_word: false,
-                },
-                SimpleTokenMatcher {
-                    token: SimpleToken::RParen,
-                    match_str: ")",
-                    is_word: false,
-                },
-                SimpleTokenMatcher {
-                    token: SimpleToken::LBrace,
-                    match_str: "{",
-                    is_word: false,
-                },
-                SimpleTokenMatcher {
-                    token: SimpleToken::RBrace,
-                    match_str: "}",
-                    is_word: false,
-                },
-                SimpleTokenMatcher {
-                    token: SimpleToken::LBracket,
-                    match_str: "[",
-                    is_word: false,
-                },
-                SimpleTokenMatcher {
-                    token: SimpleToken::RBracket,
-                    match_str: "]",
-                    is_word: false,
-                },
-            ],
         }
     }
 
-    pub fn get_tokens(&mut self) -> Result<Vec<Token>, LexerError> {
+    pub fn get_tokens(&mut self) -> Result<Vec<Token>, SyntaxError> {
         let mut tokens: Vec<Token> = vec![];
 
-        while !self.consume_whitespace()
-            && let Some(token) = self.get_next_token()?
-        {
+        while let Some(token) = self.get_next_token()? {
             tokens.push(token);
         }
 
@@ -138,7 +137,7 @@ impl Lexer<'_> {
         // If there is more text, an invalid token was encountered.
         let mut it = self.text.clone();
         if it.next().is_some() {
-            return Err(LexerError::InvalidToken);
+            return Err(SyntaxError::InvalidToken);
         }
 
         Ok(tokens)
@@ -169,8 +168,8 @@ impl Lexer<'_> {
         return false;
     }
 
-    fn get_next_token_simple(&mut self) -> Result<Option<SimpleToken>, LexerError> {
-        'check_next_token: for &token_matcher in &self.match_tokens {
+    fn get_next_token_simple(&mut self) -> Result<Option<SimpleToken>, SyntaxError> {
+        'check_next_token: for token_matcher in MATCH_TOKENS {
             let mut it = self.text.clone();
             let prev = it.current();
 
@@ -207,7 +206,7 @@ impl Lexer<'_> {
         Ok(None)
     }
 
-    fn get_next_token_identifier(&mut self) -> Result<Option<Token>, LexerError> {
+    fn get_next_token_identifier(&mut self) -> Result<Option<Token>, SyntaxError> {
         let mut it = self.text.clone();
         let first = it.next();
 
@@ -230,7 +229,7 @@ impl Lexer<'_> {
         Ok(Some(Token::Identifier(identifier)))
     }
 
-    fn get_next_token_string_literal(&mut self) -> Result<Option<Token>, LexerError> {
+    fn get_next_token_string_literal(&mut self) -> Result<Option<Token>, SyntaxError> {
         let mut it = self.text.clone();
         let first = it.next();
 
@@ -259,7 +258,7 @@ impl Lexer<'_> {
                 } else if ch == '0' {
                     str.push('\0');
                 } else {
-                    return Err(LexerError::InvalidEscapeSequenceInStringLiteral);
+                    return Err(SyntaxError::InvalidEscapeSequenceInStringLiteral);
                 }
 
                 escape = false;
@@ -282,10 +281,10 @@ impl Lexer<'_> {
             num_chars += 1;
         }
 
-        Err(LexerError::UnterminatedStringLiteral)
+        Err(SyntaxError::UnterminatedStringLiteral)
     }
 
-    fn get_next_token_integer_literal(&mut self) -> Result<Option<Token>, LexerError> {
+    fn get_next_token_integer_literal(&mut self) -> Result<Option<Token>, SyntaxError> {
         let mut it_radix = self.text.clone();
         let radix_first = it_radix.next();
         let radix_second = it_radix.next();
@@ -329,7 +328,7 @@ impl Lexer<'_> {
         }
 
         match u64::from_str_radix(&num_str, radix) {
-            Err(_err) => Err(LexerError::TooLargeIntegerLiteral),
+            Err(_err) => Err(SyntaxError::TooLargeIntegerLiteral),
             Ok(n) => {
                 self.text.advance_by(num_chars).unwrap();
                 Ok(Some(Token::IntegerLiteral(n)))
@@ -337,7 +336,7 @@ impl Lexer<'_> {
         }
     }
 
-    fn get_next_token_char_literal(&mut self) -> Result<Option<Token>, LexerError> {
+    fn get_next_token_char_literal(&mut self) -> Result<Option<Token>, SyntaxError> {
         let mut it = self.text.clone();
         let mut num_chars = 3;
 
@@ -348,11 +347,11 @@ impl Lexer<'_> {
 
         let mut ch = it.next();
         if ch.is_none() {
-            return Err(LexerError::UnterminatedCharLiteral);
+            return Err(SyntaxError::UnterminatedCharLiteral);
         }
 
         if ch.unwrap() == '\'' {
-            return Err(LexerError::EmptyCharLiteral);
+            return Err(SyntaxError::EmptyCharLiteral);
         }
 
         if ch.unwrap() == '\\' {
@@ -360,7 +359,7 @@ impl Lexer<'_> {
 
             let escape_char = it.next();
             if escape_char.is_none() {
-                return Err(LexerError::UnterminatedCharLiteral);
+                return Err(SyntaxError::UnterminatedCharLiteral);
             }
 
             if escape_char.unwrap() == '\\' {
@@ -378,20 +377,24 @@ impl Lexer<'_> {
             } else if escape_char.unwrap() == '0' {
                 ch = Some('\0');
             } else {
-                return Err(LexerError::InvalidEscapeSequenceInCharLiteral);
+                return Err(SyntaxError::InvalidEscapeSequenceInCharLiteral);
             }
         }
 
         let last = it.next();
         if last.is_none() || last.unwrap() != '\'' {
-            return Err(LexerError::UnterminatedCharLiteral);
+            return Err(SyntaxError::UnterminatedCharLiteral);
         }
 
         self.text.advance_by(num_chars).unwrap();
         Ok(Some(Token::IntegerLiteral(ch.unwrap() as u64)))
     }
 
-    fn get_next_token(&mut self) -> Result<Option<Token>, LexerError> {
+    pub fn get_next_token(&mut self) -> Result<Option<Token>, SyntaxError> {
+        if self.consume_whitespace() {
+            return Ok(None);
+        };
+
         if let Some(t) = self.get_next_token_simple()? {
             return Ok(Some(Token::SimpleToken(t)));
         }
@@ -414,17 +417,6 @@ impl Lexer<'_> {
 
         Ok(None)
     }
-}
-
-#[derive(Debug)]
-pub enum LexerError {
-    InvalidToken,
-    InvalidEscapeSequenceInStringLiteral,
-    InvalidEscapeSequenceInCharLiteral,
-    EmptyCharLiteral,
-    UnterminatedCharLiteral,
-    UnterminatedStringLiteral,
-    TooLargeIntegerLiteral,
 }
 
 #[cfg(test)]
