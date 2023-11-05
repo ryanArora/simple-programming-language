@@ -1,3 +1,5 @@
+use crate::{lexer::Lexer, parser::Parser, syntax_error::SyntaxError};
+
 #[derive(Debug)]
 pub enum Expression {
     BinaryOperation(BinaryOperation),
@@ -36,4 +38,11 @@ pub struct UnaryOperation {
 pub enum Literal {
     StringLiteral(String),
     IntegerLiteral(u64),
+}
+
+impl Parser<'_> {
+    pub fn get_next_expression(&mut self) -> Result<Option<Expression>, SyntaxError> {
+        println!("get_next_expression");
+        Ok(None)
+    }
 }

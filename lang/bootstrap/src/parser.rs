@@ -16,7 +16,7 @@ impl Parser<'_> {
 
     pub fn get_ast(&mut self) -> Result<Option<Block>, SyntaxError> {
         let mut statements: Vec<Statement> = vec![];
-        while let Some(statement) = Parser::get_next_statement(&self.lexer)? {
+        while let Some(statement) = Parser::get_next_statement(self)? {
             statements.push(statement);
         }
 
