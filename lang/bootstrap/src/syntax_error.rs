@@ -8,6 +8,7 @@ pub enum SyntaxError {
     UnterminatedStringLiteral,
     TooLargeIntegerLiteral,
     NoExpressionAfterUnaryOperator,
+    NoExpressionAfterBinaryOperator,
     NoExpressionAfterLParen,
     UnmatchedParen,
 }

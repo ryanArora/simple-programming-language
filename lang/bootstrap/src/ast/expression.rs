@@ -6,7 +6,7 @@ use crate::{
     syntax_error::SyntaxError,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
     BinaryOperation(BinaryOperation),
     UnaryOperation(UnaryOperation),
@@ -14,7 +14,7 @@ pub enum Expression {
     Identifier(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum BinaryOperationType {
     Add,
     Subtract,
@@ -22,26 +22,26 @@ pub enum BinaryOperationType {
     Divide,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BinaryOperation {
     operation_type: BinaryOperationType,
     left_expression: Box<Expression>,
     right_expression: Box<Expression>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum UnaryOperationType {
     Plus,
     Minus,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct UnaryOperation {
     operation_type: UnaryOperationType,
     expression: Box<Expression>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Literal {
     StringLiteral(String),
     IntegerLiteral(u64),
@@ -60,7 +60,96 @@ impl Parser<'_> {
         mut lhs: Expression,
         min_precedence: u32,
     ) -> Result<Option<Expression>, SyntaxError> {
-        Ok(None)
+        let mut old_lexer;
+        loop {
+            old_lexer = self.lexer.clone();
+
+            let lookahead_token = match self.lexer.get_next_token()? {
+                None => {
+                    self.lexer = old_lexer;
+                    break;
+                }
+                Some(token) => token,
+            };
+
+            let (op, p) = match lookahead_token {
+                Token::SimpleToken(simple_token) => match simple_token {
+                    SimpleToken::Addition => (BinaryOperationType::Add, 0),
+                    SimpleToken::Subtraction => (BinaryOperationType::Subtract, 0),
+                    SimpleToken::Multiplication => (BinaryOperationType::Multiply, 1),
+                    SimpleToken::Division => (BinaryOperationType::Divide, 1),
+
+                    _ => {
+                        self.lexer = old_lexer;
+                        break;
+                    }
+                },
+                _ => {
+                    self.lexer = old_lexer;
+                    break;
+                }
+            };
+
+            if !(p >= min_precedence) {
+                self.lexer = old_lexer;
+                break;
+            }
+
+            let mut rhs = match self.get_next_primary()? {
+                None => return Err(SyntaxError::NoExpressionAfterBinaryOperator),
+                Some(primary) => primary,
+            };
+
+            loop {
+                old_lexer = self.lexer.clone();
+
+                let lookahead_token = match self.lexer.get_next_token()? {
+                    None => {
+                        self.lexer = old_lexer;
+                        break;
+                    }
+                    Some(token) => token,
+                };
+
+                let (op2, p2) = match lookahead_token {
+                    Token::SimpleToken(simple_token) => match simple_token {
+                        SimpleToken::Addition => (BinaryOperationType::Add, 0),
+                        SimpleToken::Subtraction => (BinaryOperationType::Subtract, 0),
+                        SimpleToken::Multiplication => (BinaryOperationType::Multiply, 1),
+                        SimpleToken::Division => (BinaryOperationType::Divide, 1),
+
+                        _ => {
+                            self.lexer = old_lexer;
+                            break;
+                        }
+                    },
+                    _ => {
+                        self.lexer = old_lexer;
+                        break;
+                    }
+                };
+
+                if !(p2 > p) {
+                    self.lexer = old_lexer;
+                    break;
+                }
+
+                self.lexer = old_lexer;
+
+                rhs = match self.get_next_expression_1(rhs, p + 1)? {
+                    None => return Err(SyntaxError::InvalidToken),
+                    Some(expression) => expression,
+                };
+            }
+
+            lhs = Expression::BinaryOperation(BinaryOperation {
+                operation_type: op,
+                left_expression: Box::new(lhs),
+                right_expression: Box::new(rhs),
+            });
+        }
+
+        Ok(Some(lhs))
     }
 
     fn get_next_primary(&mut self) -> Result<Option<Expression>, SyntaxError> {
@@ -196,17 +285,38 @@ impl Parser<'_> {
 mod tests {
     use crate::parser::Parser;
 
-    #[test]
-    fn test_get_next_primary() {
-        let mut p = Parser::new("-((a+1) + (a+2))");
-        let e = p.get_next_primary().unwrap().unwrap();
-        println!("{:?}", e);
-    }
+    use super::{BinaryOperation, BinaryOperationType, Expression};
 
     #[test]
     fn test_get_next_expression() {
-        let mut p = Parser::new("1+1*2");
+        let mut p = Parser::new("a + b * c + (-d)");
         let e = p.get_next_expression().unwrap().unwrap();
-        println!("{:?}", e);
+
+        let a = Expression::Identifier("a".to_string());
+        let b = Expression::Identifier("b".to_string());
+        let c = Expression::Identifier("c".to_string());
+        let d = Expression::Identifier("d".to_string());
+        let minus_d = Expression::UnaryOperation(super::UnaryOperation {
+            operation_type: super::UnaryOperationType::Minus,
+            expression: Box::new(d),
+        });
+        let b_times_c = Expression::BinaryOperation(BinaryOperation {
+            operation_type: BinaryOperationType::Multiply,
+            left_expression: Box::new(b),
+            right_expression: Box::new(c),
+        });
+        let a_plus_b_times_c = Expression::BinaryOperation(BinaryOperation {
+            operation_type: BinaryOperationType::Add,
+            left_expression: Box::new(a),
+            right_expression: Box::new(b_times_c),
+        });
+
+        let a_plus_b_times_c_plus_minus_d = Expression::BinaryOperation(BinaryOperation {
+            operation_type: BinaryOperationType::Add,
+            left_expression: Box::new(a_plus_b_times_c),
+            right_expression: Box::new(minus_d),
+        });
+
+        assert_eq!(e, a_plus_b_times_c_plus_minus_d);
     }
 }
