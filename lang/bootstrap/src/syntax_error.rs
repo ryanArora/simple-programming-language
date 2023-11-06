@@ -7,4 +7,7 @@ pub enum SyntaxError {
     UnterminatedCharLiteral,
     UnterminatedStringLiteral,
     TooLargeIntegerLiteral,
+    NoExpressionAfterUnaryOperator,
+    NoExpressionAfterLParen,
+    UnmatchedParen,
 }
