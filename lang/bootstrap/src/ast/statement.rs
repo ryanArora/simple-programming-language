@@ -47,8 +47,12 @@ impl Parser<'_> {
     pub fn get_next_statement(&mut self) -> Result<Option<Statement>, SyntaxError> {
         let mut next_statement: Option<Statement> = None;
 
-        if let Some(statement) = self.get_next_assignment_statement()? {
-            next_statement = Some(Statement::Assignment(statement));
+        if let Some(assignment) = self.get_next_assignment_statement()? {
+            next_statement = Some(Statement::Assignment(assignment));
+        }
+
+        if let Some(expression) = self.get_next_expression()? {
+            next_statement = Some(Statement::Expression(expression));
         }
 
         match next_statement {

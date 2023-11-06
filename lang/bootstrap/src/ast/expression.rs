@@ -1,5 +1,3 @@
-use std::fmt::Binary;
-
 use crate::{
     lexer::{SimpleToken, Token},
     parser::Parser,
@@ -111,7 +109,7 @@ impl Parser<'_> {
                     Some(token) => token,
                 };
 
-                let (op2, p2) = match lookahead_token {
+                let (_op2, p2) = match lookahead_token {
                     Token::SimpleToken(simple_token) => match simple_token {
                         SimpleToken::Addition => (BinaryOperationType::Add, 0),
                         SimpleToken::Subtraction => (BinaryOperationType::Subtract, 0),
