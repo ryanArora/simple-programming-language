@@ -11,4 +11,5 @@ pub enum SyntaxError {
     NoExpressionAfterBinaryOperator,
     NoExpressionAfterLParen,
     UnmatchedParen,
+    StatementWithoutSemicolon,
 }

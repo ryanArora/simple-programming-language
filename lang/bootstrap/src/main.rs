@@ -28,5 +28,5 @@ fn main() {
     let mut p = Parser::new(&input_data);
     let ast = p.get_ast();
 
-    println!("{:?}", ast);
+    println!("{:#?}", ast);
 }

@@ -20,8 +20,11 @@ impl Parser<'_> {
             statements.push(statement);
         }
 
-        if self.lexer.get_next_token()?.is_some() {
-            return Err(SyntaxError::InvalidToken);
+        match self.lexer.get_next_token()? {
+            Some(_) => {
+                return Err(SyntaxError::InvalidToken);
+            }
+            None => {}
         }
 
         let block = Block { statements };
