@@ -12,7 +12,7 @@ pub enum Expression {
     Identifier(String),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BinaryOperationType {
     Add,
     Subtract,
@@ -45,6 +45,28 @@ pub enum Literal {
     IntegerLiteral(u64),
 }
 
+fn token_to_operation_type(token: Token) -> Option<BinaryOperationType> {
+    match token {
+        Token::SimpleToken(simple_token) => match simple_token {
+            SimpleToken::Addition => Some(BinaryOperationType::Add),
+            SimpleToken::Subtraction => Some(BinaryOperationType::Subtract),
+            SimpleToken::Multiplication => Some(BinaryOperationType::Multiply),
+            SimpleToken::Division => Some(BinaryOperationType::Divide),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+fn get_operator_precedence(op: BinaryOperationType) -> u32 {
+    match op {
+        BinaryOperationType::Add => 0,
+        BinaryOperationType::Subtract => 0,
+        BinaryOperationType::Multiply => 1,
+        BinaryOperationType::Divide => 1,
+    }
+}
+
 impl Parser<'_> {
     pub fn get_next_expression(&mut self) -> Result<Option<Expression>, SyntaxError> {
         match self.get_next_primary()? {
@@ -70,23 +92,15 @@ impl Parser<'_> {
                 Some(token) => token,
             };
 
-            let (op, p) = match lookahead_token {
-                Token::SimpleToken(simple_token) => match simple_token {
-                    SimpleToken::Addition => (BinaryOperationType::Add, 0),
-                    SimpleToken::Subtraction => (BinaryOperationType::Subtract, 0),
-                    SimpleToken::Multiplication => (BinaryOperationType::Multiply, 1),
-                    SimpleToken::Division => (BinaryOperationType::Divide, 1),
-
-                    _ => {
-                        self.lexer = old_lexer;
-                        break;
-                    }
-                },
-                _ => {
+            let op = match token_to_operation_type(lookahead_token) {
+                Some(op) => op,
+                None => {
                     self.lexer = old_lexer;
                     break;
                 }
             };
+
+            let p = get_operator_precedence(op);
 
             if !(p >= min_precedence) {
                 self.lexer = old_lexer;
@@ -109,23 +123,15 @@ impl Parser<'_> {
                     Some(token) => token,
                 };
 
-                let (_op2, p2) = match lookahead_token {
-                    Token::SimpleToken(simple_token) => match simple_token {
-                        SimpleToken::Addition => (BinaryOperationType::Add, 0),
-                        SimpleToken::Subtraction => (BinaryOperationType::Subtract, 0),
-                        SimpleToken::Multiplication => (BinaryOperationType::Multiply, 1),
-                        SimpleToken::Division => (BinaryOperationType::Divide, 1),
-
-                        _ => {
-                            self.lexer = old_lexer;
-                            break;
-                        }
-                    },
-                    _ => {
+                let op2 = match token_to_operation_type(lookahead_token) {
+                    Some(op) => op,
+                    None => {
                         self.lexer = old_lexer;
                         break;
                     }
                 };
+
+                let p2 = get_operator_precedence(op2);
 
                 if !(p2 > p) {
                     self.lexer = old_lexer;
