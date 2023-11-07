@@ -1,3 +1,4 @@
+let mut a;
 a = 0;
 
 if 1 {

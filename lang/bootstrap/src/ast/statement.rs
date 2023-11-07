@@ -8,10 +8,17 @@ use crate::{
 
 #[derive(Debug)]
 pub enum Statement {
+    LetStatement(LetStatement),
     Assignment(AssignmentStatement),
     IfStatement(IfStatement),
     Expression(Expression),
     EmptyStatement,
+}
+
+#[derive(Debug)]
+pub struct LetStatement {
+    identifier: String,
+    mutable: bool,
 }
 
 #[derive(Debug)]
@@ -61,8 +68,9 @@ impl Parser<'_> {
 
     pub fn get_next_statement(&mut self) -> Result<Option<Statement>, SyntaxError> {
         let mut next_statement: Option<Statement> = None;
-
-        if let Some(assignment) = self.get_next_assignment_statement()? {
+        if let Some(let_statement) = self.get_next_let_statement()? {
+            next_statement = Some(Statement::LetStatement(let_statement));
+        } else if let Some(assignment) = self.get_next_assignment_statement()? {
             next_statement = Some(Statement::Assignment(assignment));
         } else if let Some(if_statement) = self.get_next_if_statement()? {
             next_statement = Some(Statement::IfStatement(if_statement));
@@ -80,6 +88,71 @@ impl Parser<'_> {
                 Some(_) => return Ok(next_statement),
             },
         }
+    }
+
+    fn get_next_let_statement(&mut self) -> Result<Option<LetStatement>, SyntaxError> {
+        let old_lexer = self.lexer.clone();
+
+        let first_token = match self.lexer.get_next_token()? {
+            None => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+            Some(token) => token,
+        };
+
+        match first_token {
+            Token::SimpleToken(simple_token) => match simple_token {
+                SimpleToken::Let => {}
+                _ => {
+                    self.lexer = old_lexer;
+                    return Ok(None);
+                }
+            },
+            _ => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+        }
+
+        let old_lexer = self.lexer.clone();
+
+        let second_token = match self.lexer.get_next_token()? {
+            None => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+            Some(token) => token,
+        };
+
+        let mutable = match second_token {
+            Token::SimpleToken(simple_token) => match simple_token {
+                SimpleToken::Mut => true,
+                _ => {
+                    self.lexer = old_lexer;
+                    false
+                }
+            },
+            _ => {
+                self.lexer = old_lexer;
+                false
+            }
+        };
+
+        let next_token = match self.lexer.get_next_token()? {
+            None => return Err(SyntaxError::NoIdentifierInLetStatement),
+            Some(token) => token,
+        };
+
+        let identifier = match next_token {
+            Token::Identifier(identifier) => identifier,
+            _ => return Err(SyntaxError::NoIdentifierInLetStatement),
+        };
+
+        Ok(Some(LetStatement {
+            identifier,
+            mutable,
+        }))
     }
 
     fn get_next_assignment_statement(
@@ -126,10 +199,7 @@ impl Parser<'_> {
         }
 
         let expression = match self.get_next_expression()? {
-            None => {
-                self.lexer = old_lexer;
-                return Ok(None);
-            }
+            None => return Err(SyntaxError::NoIdentifierInAssignmentStatement),
             Some(expression) => expression,
         };
 
