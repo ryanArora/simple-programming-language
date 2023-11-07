@@ -16,6 +16,8 @@ pub enum SimpleToken {
     Mut,
     If,
     Else,
+    Break,
+    Continue,
     Loop,
     While,
     Addition,
@@ -44,7 +46,7 @@ pub struct Lexer<'a> {
     text: CurrentIterator<Chars<'a>>,
 }
 
-const MATCH_TOKENS: [SimpleTokenMatcher; 19] = [
+const MATCH_TOKENS: [SimpleTokenMatcher; 21] = [
     SimpleTokenMatcher {
         token: SimpleToken::Let,
         match_str: "let",
@@ -63,6 +65,16 @@ const MATCH_TOKENS: [SimpleTokenMatcher; 19] = [
     SimpleTokenMatcher {
         token: SimpleToken::Else,
         match_str: "else",
+        is_word: true,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Break,
+        match_str: "break",
+        is_word: true,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Continue,
+        match_str: "continue",
         is_word: true,
     },
     SimpleTokenMatcher {

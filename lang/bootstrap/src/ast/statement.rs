@@ -11,6 +11,8 @@ pub enum Statement {
     LetStatement(LetStatement),
     Assignment(AssignmentStatement),
     IfStatement(IfStatement),
+    BreakStatement,
+    ContinueStatement,
     LoopStatement(LoopStatement),
     WhileStatement(WhileStatement),
     Expression(Expression),
@@ -87,6 +89,10 @@ impl Parser<'_> {
             next_statement = Some(Statement::Assignment(assignment));
         } else if let Some(if_statement) = self.get_next_if_statement()? {
             next_statement = Some(Statement::IfStatement(if_statement));
+        } else if let Some(_) = self.get_next_break_statement()? {
+            next_statement = Some(Statement::BreakStatement);
+        } else if let Some(_) = self.get_next_continue_statement()? {
+            next_statement = Some(Statement::ContinueStatement);
         } else if let Some(loop_statement) = self.get_next_loop_statement()? {
             next_statement = Some(Statement::LoopStatement(loop_statement));
         } else if let Some(while_statement) = self.get_next_while_statement()? {
@@ -384,6 +390,58 @@ impl Parser<'_> {
         };
 
         Ok(Some(else_block))
+    }
+
+    fn get_next_break_statement(&mut self) -> Result<Option<()>, SyntaxError> {
+        let old_lexer = self.lexer.clone();
+
+        let first_token = match self.lexer.get_next_token()? {
+            None => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+            Some(token) => token,
+        };
+
+        match first_token {
+            Token::SimpleToken(simple_token) => match simple_token {
+                SimpleToken::Break => return Ok(Some(())),
+                _ => {
+                    self.lexer = old_lexer;
+                    return Ok(None);
+                }
+            },
+            _ => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+        };
+    }
+
+    fn get_next_continue_statement(&mut self) -> Result<Option<()>, SyntaxError> {
+        let old_lexer = self.lexer.clone();
+
+        let first_token = match self.lexer.get_next_token()? {
+            None => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+            Some(token) => token,
+        };
+
+        match first_token {
+            Token::SimpleToken(simple_token) => match simple_token {
+                SimpleToken::Continue => return Ok(Some(())),
+                _ => {
+                    self.lexer = old_lexer;
+                    return Ok(None);
+                }
+            },
+            _ => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+        };
     }
 
     fn get_next_loop_statement(&mut self) -> Result<Option<LoopStatement>, SyntaxError> {
