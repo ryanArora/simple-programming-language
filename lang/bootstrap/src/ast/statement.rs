@@ -12,6 +12,7 @@ pub enum Statement {
     Assignment(AssignmentStatement),
     IfStatement(IfStatement),
     LoopStatement(LoopStatement),
+    WhileStatement(WhileStatement),
     Expression(Expression),
     EmptyStatement,
 }
@@ -43,6 +44,12 @@ pub struct ConditionWithBlock {
 
 #[derive(Debug)]
 pub struct LoopStatement {
+    block: Block,
+}
+
+#[derive(Debug)]
+pub struct WhileStatement {
+    condition: Expression,
     block: Block,
 }
 
@@ -82,6 +89,8 @@ impl Parser<'_> {
             next_statement = Some(Statement::IfStatement(if_statement));
         } else if let Some(loop_statement) = self.get_next_loop_statement()? {
             next_statement = Some(Statement::LoopStatement(loop_statement));
+        } else if let Some(while_statement) = self.get_next_while_statement()? {
+            next_statement = Some(Statement::WhileStatement(while_statement));
         } else if let Some(expression) = self.get_next_expression()? {
             next_statement = Some(Statement::Expression(expression));
         }
@@ -408,5 +417,43 @@ impl Parser<'_> {
         };
 
         Ok(Some(LoopStatement { block }))
+    }
+
+    fn get_next_while_statement(&mut self) -> Result<Option<WhileStatement>, SyntaxError> {
+        let old_lexer = self.lexer.clone();
+
+        let first_token = match self.lexer.get_next_token()? {
+            None => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+            Some(token) => token,
+        };
+
+        match first_token {
+            Token::SimpleToken(simple_token) => match simple_token {
+                SimpleToken::While => {}
+                _ => {
+                    self.lexer = old_lexer;
+                    return Ok(None);
+                }
+            },
+            _ => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+        }
+
+        let condition = match self.get_next_expression()? {
+            None => return Err(SyntaxError::NoConditionInWhileStatement),
+            Some(condition) => condition,
+        };
+
+        let block = match self.get_next_block()? {
+            None => return Err(SyntaxError::NoBlockInWhileStatement),
+            Some(block) => block,
+        };
+
+        Ok(Some(WhileStatement { condition, block }))
     }
 }

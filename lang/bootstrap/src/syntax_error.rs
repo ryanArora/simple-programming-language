@@ -21,4 +21,6 @@ pub enum SyntaxError {
     NoIdentifierInLetStatement,
     NoIdentifierInAssignmentStatement,
     NoBlockInLoopStatement,
+    NoConditionInWhileStatement,
+    NoBlockInWhileStatement,
 }
