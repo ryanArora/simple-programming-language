@@ -1,4 +1,5 @@
 use crate::{
+    ast::block::Block,
     ast::expression::Expression,
     lexer::{SimpleToken, Token},
     parser::Parser,
@@ -8,6 +9,7 @@ use crate::{
 #[derive(Debug)]
 pub enum Statement {
     Assignment(AssignmentStatement),
+    IfStatement(IfStatement),
     Expression(Expression),
     EmptyStatement,
 }
@@ -16,6 +18,19 @@ pub enum Statement {
 pub struct AssignmentStatement {
     identifier: String,
     expression: Expression,
+}
+
+#[derive(Debug)]
+pub struct IfStatement {
+    _if: ConditionWithBlock,
+    else_if: Vec<ConditionWithBlock>,
+    _else: Option<Block>,
+}
+
+#[derive(Debug)]
+pub struct ConditionWithBlock {
+    condition: Expression,
+    block: Block,
 }
 
 impl Parser<'_> {
@@ -49,9 +64,9 @@ impl Parser<'_> {
 
         if let Some(assignment) = self.get_next_assignment_statement()? {
             next_statement = Some(Statement::Assignment(assignment));
-        }
-
-        if let Some(expression) = self.get_next_expression()? {
+        } else if let Some(if_statement) = self.get_next_if_statement()? {
+            next_statement = Some(Statement::IfStatement(if_statement));
+        } else if let Some(expression) = self.get_next_expression()? {
             next_statement = Some(Statement::Expression(expression));
         }
 
@@ -124,5 +139,163 @@ impl Parser<'_> {
         };
 
         Ok(Some(assignment_statement))
+    }
+
+    fn get_next_if_statement(&mut self) -> Result<Option<IfStatement>, SyntaxError> {
+        let _if = match self.get_next_if_statement_1()? {
+            None => return Ok(None),
+            Some(_if) => _if,
+        };
+        let else_if = self.get_next_if_statement_2()?;
+        let _else = self.get_next_if_statement_3()?;
+
+        Ok(Some(IfStatement {
+            _if,
+            else_if,
+            _else,
+        }))
+    }
+
+    fn get_next_if_statement_1(&mut self) -> Result<Option<ConditionWithBlock>, SyntaxError> {
+        let old_lexer = self.lexer.clone();
+
+        let first_token = match self.lexer.get_next_token()? {
+            None => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+            Some(token) => token,
+        };
+
+        match first_token {
+            Token::SimpleToken(simple_token) => match simple_token {
+                SimpleToken::If => {}
+                _ => {
+                    self.lexer = old_lexer;
+                    return Ok(None);
+                }
+            },
+            _ => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+        }
+
+        let if_condition = match self.get_next_expression()? {
+            None => return Err(SyntaxError::NoConditionInIfStatement),
+            Some(block) => block,
+        };
+
+        let if_block = match self.get_next_block()? {
+            None => return Err(SyntaxError::NoBlockInIfStatement),
+            Some(block) => block,
+        };
+
+        Ok(Some(ConditionWithBlock {
+            condition: if_condition,
+            block: if_block,
+        }))
+    }
+
+    fn get_next_if_statement_2(&mut self) -> Result<Vec<ConditionWithBlock>, SyntaxError> {
+        let mut _else_if: Vec<ConditionWithBlock> = vec![];
+
+        loop {
+            let old_lexer = self.lexer.clone();
+
+            let first_token = match self.lexer.get_next_token()? {
+                None => {
+                    self.lexer = old_lexer;
+                    break;
+                }
+                Some(token) => token,
+            };
+
+            match first_token {
+                Token::SimpleToken(simple_token) => match simple_token {
+                    SimpleToken::Else => {}
+                    _ => {
+                        self.lexer = old_lexer;
+                        break;
+                    }
+                },
+                _ => {
+                    self.lexer = old_lexer;
+                    break;
+                }
+            }
+
+            let second_token = match self.lexer.get_next_token()? {
+                None => {
+                    self.lexer = old_lexer;
+                    break;
+                }
+                Some(token) => token,
+            };
+
+            match second_token {
+                Token::SimpleToken(simple_token) => match simple_token {
+                    SimpleToken::If => {}
+                    _ => {
+                        self.lexer = old_lexer;
+                        break;
+                    }
+                },
+                _ => {
+                    self.lexer = old_lexer;
+                    break;
+                }
+            }
+
+            let else_if_condition = match self.get_next_expression()? {
+                None => return Err(SyntaxError::NoConditionInElseIfStatement),
+                Some(block) => block,
+            };
+
+            let else_if_block = match self.get_next_block()? {
+                None => return Err(SyntaxError::NoBlockInElseIfStatement),
+                Some(block) => block,
+            };
+
+            _else_if.push(ConditionWithBlock {
+                condition: else_if_condition,
+                block: else_if_block,
+            });
+        }
+
+        Ok(_else_if)
+    }
+
+    fn get_next_if_statement_3(&mut self) -> Result<Option<Block>, SyntaxError> {
+        let old_lexer = self.lexer.clone();
+
+        let first_token = match self.lexer.get_next_token()? {
+            None => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+            Some(token) => token,
+        };
+
+        match first_token {
+            Token::SimpleToken(simple_token) => match simple_token {
+                SimpleToken::Else => {}
+                _ => {
+                    self.lexer = old_lexer;
+                    return Ok(None);
+                }
+            },
+            _ => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+        }
+
+        let else_block = match self.get_next_block()? {
+            None => return Err(SyntaxError::NoBlockInElseStatement),
+            Some(block) => block,
+        };
+
+        Ok(Some(else_block))
     }
 }

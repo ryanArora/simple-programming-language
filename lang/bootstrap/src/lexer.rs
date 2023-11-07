@@ -14,6 +14,8 @@ pub enum Token {
 pub enum SimpleToken {
     Let,
     Mut,
+    If,
+    Else,
     Addition,
     Subtraction,
     Multiplication,
@@ -40,7 +42,7 @@ pub struct Lexer<'a> {
     text: CurrentIterator<Chars<'a>>,
 }
 
-const MATCH_TOKENS: [SimpleTokenMatcher; 15] = [
+const MATCH_TOKENS: [SimpleTokenMatcher; 17] = [
     SimpleTokenMatcher {
         token: SimpleToken::Let,
         match_str: "let",
@@ -49,6 +51,16 @@ const MATCH_TOKENS: [SimpleTokenMatcher; 15] = [
     SimpleTokenMatcher {
         token: SimpleToken::Mut,
         match_str: "mut",
+        is_word: true,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::If,
+        match_str: "if",
+        is_word: true,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Else,
+        match_str: "else",
         is_word: true,
     },
     SimpleTokenMatcher {

@@ -11,5 +11,11 @@ pub enum SyntaxError {
     NoExpressionAfterBinaryOperator,
     NoExpressionAfterLParen,
     UnmatchedParen,
+    UnmatchedBrace,
     StatementWithoutSemicolon,
+    NoConditionInIfStatement,
+    NoBlockInIfStatement,
+    NoConditionInElseIfStatement,
+    NoBlockInElseIfStatement,
+    NoBlockInElseStatement,
 }
