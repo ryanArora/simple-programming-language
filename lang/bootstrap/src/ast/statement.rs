@@ -11,6 +11,10 @@ pub enum Statement {
     LetStatement(LetStatement),
     Assignment(AssignmentStatement),
     IfStatement(IfStatement),
+    BreakStatement,
+    ContinueStatement,
+    LoopStatement(LoopStatement),
+    WhileStatement(WhileStatement),
     Expression(Expression),
     EmptyStatement,
 }
@@ -36,6 +40,17 @@ pub struct IfStatement {
 
 #[derive(Debug)]
 pub struct ConditionWithBlock {
+    condition: Expression,
+    block: Block,
+}
+
+#[derive(Debug)]
+pub struct LoopStatement {
+    block: Block,
+}
+
+#[derive(Debug)]
+pub struct WhileStatement {
     condition: Expression,
     block: Block,
 }
@@ -74,6 +89,14 @@ impl Parser<'_> {
             next_statement = Some(Statement::Assignment(assignment));
         } else if let Some(if_statement) = self.get_next_if_statement()? {
             next_statement = Some(Statement::IfStatement(if_statement));
+        } else if let Some(_) = self.get_next_break_statement()? {
+            next_statement = Some(Statement::BreakStatement);
+        } else if let Some(_) = self.get_next_continue_statement()? {
+            next_statement = Some(Statement::ContinueStatement);
+        } else if let Some(loop_statement) = self.get_next_loop_statement()? {
+            next_statement = Some(Statement::LoopStatement(loop_statement));
+        } else if let Some(while_statement) = self.get_next_while_statement()? {
+            next_statement = Some(Statement::WhileStatement(while_statement));
         } else if let Some(expression) = self.get_next_expression()? {
             next_statement = Some(Statement::Expression(expression));
         }
@@ -367,5 +390,128 @@ impl Parser<'_> {
         };
 
         Ok(Some(else_block))
+    }
+
+    fn get_next_break_statement(&mut self) -> Result<Option<()>, SyntaxError> {
+        let old_lexer = self.lexer.clone();
+
+        let first_token = match self.lexer.get_next_token()? {
+            None => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+            Some(token) => token,
+        };
+
+        match first_token {
+            Token::SimpleToken(simple_token) => match simple_token {
+                SimpleToken::Break => return Ok(Some(())),
+                _ => {
+                    self.lexer = old_lexer;
+                    return Ok(None);
+                }
+            },
+            _ => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+        };
+    }
+
+    fn get_next_continue_statement(&mut self) -> Result<Option<()>, SyntaxError> {
+        let old_lexer = self.lexer.clone();
+
+        let first_token = match self.lexer.get_next_token()? {
+            None => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+            Some(token) => token,
+        };
+
+        match first_token {
+            Token::SimpleToken(simple_token) => match simple_token {
+                SimpleToken::Continue => return Ok(Some(())),
+                _ => {
+                    self.lexer = old_lexer;
+                    return Ok(None);
+                }
+            },
+            _ => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+        };
+    }
+
+    fn get_next_loop_statement(&mut self) -> Result<Option<LoopStatement>, SyntaxError> {
+        let old_lexer = self.lexer.clone();
+
+        let first_token = match self.lexer.get_next_token()? {
+            None => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+            Some(token) => token,
+        };
+
+        match first_token {
+            Token::SimpleToken(simple_token) => match simple_token {
+                SimpleToken::Loop => {}
+                _ => {
+                    self.lexer = old_lexer;
+                    return Ok(None);
+                }
+            },
+            _ => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+        }
+
+        let block = match self.get_next_block()? {
+            None => return Err(SyntaxError::NoBlockInLoopStatement),
+            Some(block) => block,
+        };
+
+        Ok(Some(LoopStatement { block }))
+    }
+
+    fn get_next_while_statement(&mut self) -> Result<Option<WhileStatement>, SyntaxError> {
+        let old_lexer = self.lexer.clone();
+
+        let first_token = match self.lexer.get_next_token()? {
+            None => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+            Some(token) => token,
+        };
+
+        match first_token {
+            Token::SimpleToken(simple_token) => match simple_token {
+                SimpleToken::While => {}
+                _ => {
+                    self.lexer = old_lexer;
+                    return Ok(None);
+                }
+            },
+            _ => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+        }
+
+        let condition = match self.get_next_expression()? {
+            None => return Err(SyntaxError::NoConditionInWhileStatement),
+            Some(condition) => condition,
+        };
+
+        let block = match self.get_next_block()? {
+            None => return Err(SyntaxError::NoBlockInWhileStatement),
+            Some(block) => block,
+        };
+
+        Ok(Some(WhileStatement { condition, block }))
     }
 }
