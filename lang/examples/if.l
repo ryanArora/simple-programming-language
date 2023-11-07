@@ -1,5 +1,4 @@
-let mut a;
-a = 0;
+let mut a = 0;
 
 if 1 {
 	a = 1;
