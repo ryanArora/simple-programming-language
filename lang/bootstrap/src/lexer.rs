@@ -12,6 +12,7 @@ pub enum Token {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum SimpleToken {
+    // Keywords
     Let,
     Mut,
     If,
@@ -20,19 +21,36 @@ pub enum SimpleToken {
     Continue,
     Loop,
     While,
-    Addition,
-    Subtraction,
-    Multiplication,
-    Division,
-    Exponent,
+    // Unary Operators
+    LogicalNot,
+    BitwiseNot,
+    // Binary Operators
+    Exponentiate,
+    Multiply,
+    Divide,
+    Modulus,
+    Add,
+    Subtract,
+    LeftShift,
+    RightShift,
+    Greater,
+    Less,
+    GreaterEqual,
+    LessEqual,
+    Equal,
+    NotEqual,
+    BitwiseAnd,
+    BitwiseXor,
+    BitwiseOr,
+    LogicalAnd,
+    LogicalOr,
+    // Other
     Assignment,
     Semicolon,
     LParen,
     RParen,
     LBrace,
     RBrace,
-    LBracket,
-    RBracket,
 }
 
 struct SimpleTokenMatcher {
@@ -46,7 +64,7 @@ pub struct Lexer<'a> {
     text: CurrentIterator<Chars<'a>>,
 }
 
-const MATCH_TOKENS: [SimpleTokenMatcher; 21] = [
+const MATCH_TOKENS: [SimpleTokenMatcher; 35] = [
     SimpleTokenMatcher {
         token: SimpleToken::Let,
         match_str: "let",
@@ -88,28 +106,108 @@ const MATCH_TOKENS: [SimpleTokenMatcher; 21] = [
         is_word: true,
     },
     SimpleTokenMatcher {
-        token: SimpleToken::Exponent,
+        token: SimpleToken::Exponentiate,
         match_str: "**",
         is_word: false,
     },
     SimpleTokenMatcher {
-        token: SimpleToken::Addition,
-        match_str: "+",
+        token: SimpleToken::LeftShift,
+        match_str: "<<",
         is_word: false,
     },
     SimpleTokenMatcher {
-        token: SimpleToken::Subtraction,
-        match_str: "-",
+        token: SimpleToken::RightShift,
+        match_str: ">>",
         is_word: false,
     },
     SimpleTokenMatcher {
-        token: SimpleToken::Multiplication,
+        token: SimpleToken::GreaterEqual,
+        match_str: ">=",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::LessEqual,
+        match_str: "<=",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Equal,
+        match_str: "==",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::NotEqual,
+        match_str: "!=",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::LogicalAnd,
+        match_str: "&&",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::LogicalOr,
+        match_str: "||",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Multiply,
         match_str: "*",
         is_word: false,
     },
     SimpleTokenMatcher {
-        token: SimpleToken::Division,
+        token: SimpleToken::BitwiseNot,
+        match_str: "~",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::LogicalNot,
+        match_str: "!",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Divide,
         match_str: "/",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Modulus,
+        match_str: "%",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Add,
+        match_str: "+",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Subtract,
+        match_str: "-",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Greater,
+        match_str: ">",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Less,
+        match_str: "<",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::BitwiseAnd,
+        match_str: "&",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::BitwiseXor,
+        match_str: "^",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::BitwiseOr,
+        match_str: "|",
         is_word: false,
     },
     SimpleTokenMatcher {
@@ -140,16 +238,6 @@ const MATCH_TOKENS: [SimpleTokenMatcher; 21] = [
     SimpleTokenMatcher {
         token: SimpleToken::RBrace,
         match_str: "}",
-        is_word: false,
-    },
-    SimpleTokenMatcher {
-        token: SimpleToken::LBracket,
-        match_str: "[",
-        is_word: false,
-    },
-    SimpleTokenMatcher {
-        token: SimpleToken::RBracket,
-        match_str: "]",
         is_word: false,
     },
 ];
@@ -470,7 +558,7 @@ mod tests {
     fn test_get_tokens_one() {
         let mut l = Lexer::new("+");
         let tokens = l.get_tokens().unwrap();
-        assert_eq!(tokens, vec![Token::SimpleToken(SimpleToken::Addition)]);
+        assert_eq!(tokens, vec![Token::SimpleToken(SimpleToken::Add)]);
     }
 
     #[test]
@@ -480,11 +568,11 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::SimpleToken(SimpleToken::Addition),
-                Token::SimpleToken(SimpleToken::Addition),
-                Token::SimpleToken(SimpleToken::Subtraction),
-                Token::SimpleToken(SimpleToken::Subtraction),
-                Token::SimpleToken(SimpleToken::Subtraction),
+                Token::SimpleToken(SimpleToken::Add),
+                Token::SimpleToken(SimpleToken::Add),
+                Token::SimpleToken(SimpleToken::Subtract),
+                Token::SimpleToken(SimpleToken::Subtract),
+                Token::SimpleToken(SimpleToken::Subtract),
             ]
         );
     }
@@ -496,8 +584,8 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::SimpleToken(SimpleToken::Exponent),
-                Token::SimpleToken(SimpleToken::Multiplication),
+                Token::SimpleToken(SimpleToken::Exponentiate),
+                Token::SimpleToken(SimpleToken::Multiply),
             ]
         );
     }
@@ -536,10 +624,10 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::SimpleToken(SimpleToken::Addition),
-                Token::SimpleToken(SimpleToken::Subtraction),
-                Token::SimpleToken(SimpleToken::Multiplication),
-                Token::SimpleToken(SimpleToken::Addition),
+                Token::SimpleToken(SimpleToken::Add),
+                Token::SimpleToken(SimpleToken::Subtract),
+                Token::SimpleToken(SimpleToken::Multiply),
+                Token::SimpleToken(SimpleToken::Add),
             ]
         );
     }

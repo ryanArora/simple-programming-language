@@ -14,10 +14,25 @@ pub enum Expression {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BinaryOperationType {
-    Add,
-    Subtract,
-    Multiply,
-    Divide,
+    Add = SimpleToken::Add as isize,
+    Subtract = SimpleToken::Subtract as isize,
+    Multiply = SimpleToken::Multiply as isize,
+    Divide = SimpleToken::Divide as isize,
+    Modulus = SimpleToken::Modulus as isize,
+    Exponentiate = SimpleToken::Exponentiate as isize,
+    Equal = SimpleToken::Equal as isize,
+    NotEqual = SimpleToken::NotEqual as isize,
+    GreaterEqual = SimpleToken::GreaterEqual as isize,
+    LessEqual = SimpleToken::LessEqual as isize,
+    Greater = SimpleToken::Greater as isize,
+    Less = SimpleToken::Less as isize,
+    LogicalAnd = SimpleToken::LogicalAnd as isize,
+    LogicalOr = SimpleToken::LogicalOr as isize,
+    BitwiseAnd = SimpleToken::BitwiseAnd as isize,
+    BitwiseOr = SimpleToken::BitwiseOr as isize,
+    BitwiseXor = SimpleToken::BitwiseXor as isize,
+    LeftShift = SimpleToken::LeftShift as isize,
+    RightShift = SimpleToken::RightShift as isize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -29,8 +44,10 @@ pub struct BinaryOperation {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum UnaryOperationType {
-    Plus,
-    Minus,
+    LogicalNot = SimpleToken::LogicalAnd as isize,
+    BitwiseNot = SimpleToken::LogicalNot as isize,
+    Plus = SimpleToken::Add as isize,
+    Minus = SimpleToken::Subtract as isize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -45,25 +62,68 @@ pub enum Literal {
     IntegerLiteral(u64),
 }
 
-fn token_to_operation_type(token: Token) -> Option<BinaryOperationType> {
-    match token {
+fn token_to_unary_operation_type(token: Token) -> Option<UnaryOperationType> {
+    Some(match token {
         Token::SimpleToken(simple_token) => match simple_token {
-            SimpleToken::Addition => Some(BinaryOperationType::Add),
-            SimpleToken::Subtraction => Some(BinaryOperationType::Subtract),
-            SimpleToken::Multiplication => Some(BinaryOperationType::Multiply),
-            SimpleToken::Division => Some(BinaryOperationType::Divide),
-            _ => None,
+            SimpleToken::LogicalNot => UnaryOperationType::LogicalNot,
+            SimpleToken::BitwiseNot => UnaryOperationType::BitwiseNot,
+            SimpleToken::Add => UnaryOperationType::Plus,
+            SimpleToken::Subtract => UnaryOperationType::Minus,
+            _ => return None,
         },
-        _ => None,
-    }
+        _ => return None,
+    })
+}
+
+fn token_to_binary_operation_type(token: Token) -> Option<BinaryOperationType> {
+    Some(match token {
+        Token::SimpleToken(simple_token) => match simple_token {
+            SimpleToken::Add => BinaryOperationType::Add,
+            SimpleToken::Subtract => BinaryOperationType::Subtract,
+            SimpleToken::Multiply => BinaryOperationType::Multiply,
+            SimpleToken::Divide => BinaryOperationType::Divide,
+            SimpleToken::Modulus => BinaryOperationType::Modulus,
+            SimpleToken::Exponentiate => BinaryOperationType::Exponentiate,
+            SimpleToken::Equal => BinaryOperationType::Equal,
+            SimpleToken::NotEqual => BinaryOperationType::NotEqual,
+            SimpleToken::GreaterEqual => BinaryOperationType::GreaterEqual,
+            SimpleToken::LessEqual => BinaryOperationType::LessEqual,
+            SimpleToken::Greater => BinaryOperationType::Greater,
+            SimpleToken::Less => BinaryOperationType::Less,
+            SimpleToken::LogicalAnd => BinaryOperationType::LogicalAnd,
+            SimpleToken::LogicalOr => BinaryOperationType::LogicalOr,
+            SimpleToken::BitwiseAnd => BinaryOperationType::BitwiseAnd,
+            SimpleToken::BitwiseOr => BinaryOperationType::BitwiseOr,
+            SimpleToken::BitwiseXor => BinaryOperationType::BitwiseXor,
+            SimpleToken::LeftShift => BinaryOperationType::LeftShift,
+            SimpleToken::RightShift => BinaryOperationType::RightShift,
+            _ => return None,
+        },
+        _ => return None,
+    })
 }
 
 fn get_operator_precedence(op: BinaryOperationType) -> u32 {
     match op {
-        BinaryOperationType::Add => 0,
-        BinaryOperationType::Subtract => 0,
-        BinaryOperationType::Multiply => 1,
-        BinaryOperationType::Divide => 1,
+        BinaryOperationType::Exponentiate => 10,
+        BinaryOperationType::Multiply => 9,
+        BinaryOperationType::Divide => 9,
+        BinaryOperationType::Modulus => 9,
+        BinaryOperationType::Add => 8,
+        BinaryOperationType::Subtract => 8,
+        BinaryOperationType::LeftShift => 7,
+        BinaryOperationType::RightShift => 7,
+        BinaryOperationType::Greater => 6,
+        BinaryOperationType::Less => 6,
+        BinaryOperationType::GreaterEqual => 6,
+        BinaryOperationType::LessEqual => 6,
+        BinaryOperationType::Equal => 5,
+        BinaryOperationType::NotEqual => 5,
+        BinaryOperationType::BitwiseAnd => 4,
+        BinaryOperationType::BitwiseXor => 3,
+        BinaryOperationType::BitwiseOr => 2,
+        BinaryOperationType::LogicalAnd => 1,
+        BinaryOperationType::LogicalOr => 0,
     }
 }
 
@@ -92,7 +152,7 @@ impl Parser<'_> {
                 Some(token) => token,
             };
 
-            let op = match token_to_operation_type(lookahead_token) {
+            let op = match token_to_binary_operation_type(lookahead_token) {
                 Some(op) => op,
                 None => {
                     self.lexer = old_lexer;
@@ -123,7 +183,7 @@ impl Parser<'_> {
                     Some(token) => token,
                 };
 
-                let op2 = match token_to_operation_type(lookahead_token) {
+                let op2 = match token_to_binary_operation_type(lookahead_token) {
                     Some(op) => op,
                     None => {
                         self.lexer = old_lexer;
@@ -258,16 +318,9 @@ impl Parser<'_> {
             Some(token) => token,
         };
 
-        let operation_type = match first_token {
-            Token::SimpleToken(simple_token) => match simple_token {
-                SimpleToken::Addition => UnaryOperationType::Plus,
-                SimpleToken::Subtraction => UnaryOperationType::Minus,
-                _ => {
-                    self.lexer = old_lexer;
-                    return Ok(None);
-                }
-            },
-            _ => {
+        let operation_type = match token_to_unary_operation_type(first_token) {
+            Some(op) => op,
+            None => {
                 self.lexer = old_lexer;
                 return Ok(None);
             }
