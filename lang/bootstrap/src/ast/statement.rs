@@ -23,6 +23,7 @@ pub enum Statement {
 pub struct LetStatement {
     identifier: String,
     mutable: bool,
+    expression: Option<Expression>,
 }
 
 #[derive(Debug)]
@@ -83,22 +84,23 @@ impl Parser<'_> {
 
     pub fn get_next_statement(&mut self) -> Result<Option<Statement>, SyntaxError> {
         let mut next_statement: Option<Statement> = None;
-        if let Some(let_statement) = self.get_next_let_statement()? {
-            next_statement = Some(Statement::LetStatement(let_statement));
-        } else if let Some(assignment) = self.get_next_assignment_statement()? {
-            next_statement = Some(Statement::Assignment(assignment));
-        } else if let Some(if_statement) = self.get_next_if_statement()? {
-            next_statement = Some(Statement::IfStatement(if_statement));
+
+        if let Some(statement) = self.get_next_let_statement()? {
+            next_statement = Some(Statement::LetStatement(statement));
+        } else if let Some(statement) = self.get_next_assignment_statement()? {
+            next_statement = Some(Statement::Assignment(statement));
+        } else if let Some(statement) = self.get_next_if_statement()? {
+            next_statement = Some(Statement::IfStatement(statement));
         } else if let Some(_) = self.get_next_break_statement()? {
             next_statement = Some(Statement::BreakStatement);
         } else if let Some(_) = self.get_next_continue_statement()? {
             next_statement = Some(Statement::ContinueStatement);
-        } else if let Some(loop_statement) = self.get_next_loop_statement()? {
-            next_statement = Some(Statement::LoopStatement(loop_statement));
-        } else if let Some(while_statement) = self.get_next_while_statement()? {
-            next_statement = Some(Statement::WhileStatement(while_statement));
-        } else if let Some(expression) = self.get_next_expression()? {
-            next_statement = Some(Statement::Expression(expression));
+        } else if let Some(statement) = self.get_next_loop_statement()? {
+            next_statement = Some(Statement::LoopStatement(statement));
+        } else if let Some(statement) = self.get_next_while_statement()? {
+            next_statement = Some(Statement::WhileStatement(statement));
+        } else if let Some(statement) = self.get_next_expression()? {
+            next_statement = Some(Statement::Expression(statement));
         }
 
         match next_statement {
@@ -140,26 +142,24 @@ impl Parser<'_> {
 
         let old_lexer = self.lexer.clone();
 
-        let second_token = match self.lexer.get_next_token()? {
+        let mutable = match self.lexer.get_next_token()? {
             None => {
                 self.lexer = old_lexer;
-                return Ok(None);
+                false
             }
-            Some(token) => token,
-        };
-
-        let mutable = match second_token {
-            Token::SimpleToken(simple_token) => match simple_token {
-                SimpleToken::Mut => true,
+            Some(token) => match token {
+                Token::SimpleToken(simple_token) => match simple_token {
+                    SimpleToken::Mut => true,
+                    _ => {
+                        self.lexer = old_lexer;
+                        false
+                    }
+                },
                 _ => {
                     self.lexer = old_lexer;
                     false
                 }
             },
-            _ => {
-                self.lexer = old_lexer;
-                false
-            }
         };
 
         let next_token = match self.lexer.get_next_token()? {
@@ -172,9 +172,35 @@ impl Parser<'_> {
             _ => return Err(SyntaxError::NoIdentifierInLetStatement),
         };
 
+        let old_lexer = self.lexer.clone();
+
+        let expression = match self.lexer.get_next_token()? {
+            None => {
+                self.lexer = old_lexer;
+                None
+            }
+            Some(token) => match token {
+                Token::SimpleToken(simple_token) => match simple_token {
+                    SimpleToken::Assignment => match self.get_next_expression()? {
+                        None => return Err(SyntaxError::NoExpressionInLetAssignmentStatement),
+                        Some(expression) => Some(expression),
+                    },
+                    _ => {
+                        self.lexer = old_lexer;
+                        None
+                    }
+                },
+                _ => {
+                    self.lexer = old_lexer;
+                    None
+                }
+            },
+        };
+
         Ok(Some(LetStatement {
             identifier,
             mutable,
+            expression,
         }))
     }
 
@@ -222,7 +248,7 @@ impl Parser<'_> {
         }
 
         let expression = match self.get_next_expression()? {
-            None => return Err(SyntaxError::NoIdentifierInAssignmentStatement),
+            None => return Err(SyntaxError::NoExpressionInAssignmentStatement),
             Some(expression) => expression,
         };
 
