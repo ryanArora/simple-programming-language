@@ -6,6 +6,8 @@ use crate::{
     syntax_error::SyntaxError,
 };
 
+use super::expression::{BinaryOperation, BinaryOperationType};
+
 #[derive(Debug)]
 pub enum Statement {
     LetStatement(LetStatement),
@@ -233,9 +235,20 @@ impl Parser<'_> {
             Some(token) => token,
         };
 
-        match second_token {
+        let binary_operation_type = match second_token {
             Token::SimpleToken(simple_token) => match simple_token {
-                SimpleToken::Assignment => {}
+                SimpleToken::ExponentiationAssignment => Some(BinaryOperationType::Exponentiate),
+                SimpleToken::AdditionAssignment => Some(BinaryOperationType::Add),
+                SimpleToken::SubtractionAssignment => Some(BinaryOperationType::Subtract),
+                SimpleToken::MultiplicationAssignment => Some(BinaryOperationType::Multiply),
+                SimpleToken::DivisionAssignment => Some(BinaryOperationType::Divide),
+                SimpleToken::ModulusAssignment => Some(BinaryOperationType::Modulus),
+                SimpleToken::BitwiseAndAssignment => Some(BinaryOperationType::BitwiseAnd),
+                SimpleToken::BitwiseOrAssignment => Some(BinaryOperationType::BitwiseOr),
+                SimpleToken::BitwiseXorAssignment => Some(BinaryOperationType::BitwiseXor),
+                SimpleToken::LeftShiftAssignment => Some(BinaryOperationType::LeftShift),
+                SimpleToken::RightShiftAssignment => Some(BinaryOperationType::RightShift),
+                SimpleToken::Assignment => None,
                 _ => {
                     self.lexer = old_lexer;
                     return Ok(None);
@@ -245,16 +258,29 @@ impl Parser<'_> {
                 self.lexer = old_lexer;
                 return Ok(None);
             }
-        }
+        };
 
         let expression = match self.get_next_expression()? {
             None => return Err(SyntaxError::NoExpressionInAssignmentStatement),
             Some(expression) => expression,
         };
 
-        let assignment_statement = AssignmentStatement {
-            identifier,
-            expression,
+        let assignment_statement = match binary_operation_type {
+            None => AssignmentStatement {
+                identifier,
+                expression,
+            },
+            Some(operation_type) => {
+                let ident = identifier.clone();
+                AssignmentStatement {
+                    identifier,
+                    expression: Expression::BinaryOperation(BinaryOperation {
+                        operation_type,
+                        left_expression: Box::new(Expression::Identifier(ident)),
+                        right_expression: Box::new(expression),
+                    }),
+                }
+            }
         };
 
         Ok(Some(assignment_statement))

@@ -44,8 +44,20 @@ pub enum SimpleToken {
     BitwiseOr,
     LogicalAnd,
     LogicalOr,
-    // Other
+    // Assignment Operators
+    ExponentiationAssignment,
+    AdditionAssignment,
+    SubtractionAssignment,
+    MultiplicationAssignment,
+    DivisionAssignment,
+    ModulusAssignment,
+    BitwiseAndAssignment,
+    BitwiseOrAssignment,
+    BitwiseXorAssignment,
+    LeftShiftAssignment,
+    RightShiftAssignment,
     Assignment,
+    // Other
     Semicolon,
     LParen,
     RParen,
@@ -64,7 +76,7 @@ pub struct Lexer<'a> {
     text: CurrentIterator<Chars<'a>>,
 }
 
-const MATCH_TOKENS: [SimpleTokenMatcher; 35] = [
+const MATCH_TOKENS: [SimpleTokenMatcher; 46] = [
     SimpleTokenMatcher {
         token: SimpleToken::Let,
         match_str: "let",
@@ -104,6 +116,61 @@ const MATCH_TOKENS: [SimpleTokenMatcher; 35] = [
         token: SimpleToken::While,
         match_str: "while",
         is_word: true,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::ExponentiationAssignment,
+        match_str: "**=",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::LeftShiftAssignment,
+        match_str: "<<=",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::RightShiftAssignment,
+        match_str: ">>=",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::AdditionAssignment,
+        match_str: "+=",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::SubtractionAssignment,
+        match_str: "-=",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::MultiplicationAssignment,
+        match_str: "*=",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::DivisionAssignment,
+        match_str: "/=",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::ModulusAssignment,
+        match_str: "%=",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::BitwiseAndAssignment,
+        match_str: "&=",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::BitwiseOrAssignment,
+        match_str: "|=",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::BitwiseXorAssignment,
+        match_str: "^=",
+        is_word: false,
     },
     SimpleTokenMatcher {
         token: SimpleToken::Exponentiate,

@@ -37,9 +37,9 @@ pub enum BinaryOperationType {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BinaryOperation {
-    operation_type: BinaryOperationType,
-    left_expression: Box<Expression>,
-    right_expression: Box<Expression>,
+    pub operation_type: BinaryOperationType,
+    pub left_expression: Box<Expression>,
+    pub right_expression: Box<Expression>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
