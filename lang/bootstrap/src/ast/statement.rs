@@ -30,8 +30,8 @@ pub struct LetStatement {
 
 #[derive(Debug)]
 pub struct AssignmentStatement {
-    identifier: String,
-    expression: Expression,
+    pub identifier: String,
+    pub expression: Expression,
 }
 
 #[derive(Debug)]

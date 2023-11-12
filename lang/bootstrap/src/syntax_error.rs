@@ -24,4 +24,5 @@ pub enum SyntaxError {
     NoBlockInWhileStatement,
     NoExpressionInLetAssignmentStatement,
     NoExpressionInAssignmentStatement,
+    UndefinedReference,
 }
