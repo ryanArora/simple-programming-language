@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+use core::fmt;
+use std::{collections::HashMap, fmt::Display};
 
 use crate::{
     ast::{
@@ -22,6 +23,24 @@ pub enum IRStatement {
     Branch(IRBranchStatement),
     ConditionalBranch(IRConditionalBranchStatement),
     Label(IRLabelStatement),
+}
+
+impl Display for IRStatement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            IRStatement::LoadImmediate(s) => write!(f, "li t{}, {}", s.rd, s.imm),
+            IRStatement::Add(s) => write!(f, "add t{}, t{}, t{}", s.rd, s.rs1, s.rs2),
+            IRStatement::Subtract(s) => write!(f, "sub t{}, t{}, t{}", s.rd, s.rs1, s.rs2),
+            IRStatement::And(s) => write!(f, "and t{}, t{}, t{}", s.rd, s.rs1, s.rs2),
+            IRStatement::Or(s) => write!(f, "or t{}, t{}, t{}", s.rd, s.rs1, s.rs2),
+            IRStatement::Xor(s) => write!(f, "xor t{}, t{}, t{}", s.rd, s.rs1, s.rs2),
+            IRStatement::LeftShift(s) => write!(f, "sll t{}, t{}, t{}", s.rd, s.rs1, s.rs2),
+            IRStatement::RightShift(s) => write!(f, "srl t{}, t{}, t{}", s.rd, s.rs1, s.rs2),
+            IRStatement::Branch(s) => write!(f, "j L{}", s.label),
+            IRStatement::ConditionalBranch(s) => write!(f, "beq t{}, 1, L{}", s.register, s.label),
+            IRStatement::Label(s) => write!(f, "L{}:", s.label),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -447,10 +466,12 @@ mod tests {
 
     #[test]
     fn test_get_ir_simple_if() {
-        let mut parser = Parser::new("if 1 { x = 2; } else if 1 { x = 3; } else { x = 4; };");
+        let mut parser = Parser::new("if (10 + 20 - 30 | 40 & 50 ^ 60 << 70 >> 80) {};");
         let program = parser.get_ast().unwrap().unwrap();
         let ir = get_ir(&program).unwrap();
-
-        println!("{:#?}", ir);
+ 
+        for stmt in ir {
+            println!("{}", stmt);
+        }
     }
 }
