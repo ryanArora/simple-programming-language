@@ -57,18 +57,18 @@ pub struct IRRegisterStatement {
 }
 
 #[derive(Debug, PartialEq)]
-struct IRBranchStatement {
+pub struct IRBranchStatement {
     label: u32,
 }
 
 #[derive(Debug, PartialEq)]
-struct IRConditionalBranchStatement {
+pub struct IRConditionalBranchStatement {
     register: u32,
     label: u32,
 }
 
 #[derive(Debug, PartialEq)]
-struct IRLabelStatement {
+pub struct IRLabelStatement {
     label: u32,
 }
 
@@ -469,7 +469,7 @@ mod tests {
         let mut parser = Parser::new("if (10 + 20 - 30 | 40 & 50 ^ 60 << 70 >> 80) {};");
         let program = parser.get_ast().unwrap().unwrap();
         let ir = get_ir(&program).unwrap();
- 
+
         for stmt in ir {
             println!("{}", stmt);
         }
