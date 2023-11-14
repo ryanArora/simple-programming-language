@@ -4,7 +4,7 @@ use crate::{
     ast::{
         block::Block,
         expression::{BinaryOperation, BinaryOperationType, Expression, Literal},
-        statement::{AssignmentStatement, Statement},
+        statement::{AssignmentStatement, IfStatement, Statement},
     },
     syntax_error::SyntaxError,
 };
@@ -19,6 +19,9 @@ pub enum IRStatement {
     Xor(IRRegisterStatement),
     LeftShift(IRRegisterStatement),
     RightShift(IRRegisterStatement),
+    Branch(IRBranchStatement),
+    ConditionalBranch(IRConditionalBranchStatement),
+    Label(IRLabelStatement),
 }
 
 #[derive(Debug, PartialEq)]
@@ -34,11 +37,28 @@ pub struct IRRegisterStatement {
     rs2: u32,
 }
 
+#[derive(Debug, PartialEq)]
+struct IRBranchStatement {
+    label: u32,
+}
+
+#[derive(Debug, PartialEq)]
+struct IRConditionalBranchStatement {
+    register: u32,
+    label: u32,
+}
+
+#[derive(Debug, PartialEq)]
+struct IRLabelStatement {
+    label: u32,
+}
+
 #[derive(Debug)]
 struct IRState<'a> {
     statements: Vec<IRStatement>,
     symbols: HashMap<&'a str, u32>,
     current_register: u32,
+    current_label: u32,
 }
 
 pub fn get_ir<'a>(program: &'a Block) -> Result<Vec<IRStatement>, SyntaxError> {
@@ -46,6 +66,7 @@ pub fn get_ir<'a>(program: &'a Block) -> Result<Vec<IRStatement>, SyntaxError> {
         statements: vec![],
         symbols: HashMap::new(),
         current_register: 0,
+        current_label: 0,
     };
 
     walk_block(&mut ir, program)?;
@@ -65,10 +86,10 @@ fn walk_statement<'a>(ir: &mut IRState<'a>, statement: &'a Statement) -> Result<
         Statement::LetStatement(_) => unimplemented!(),
 
         Statement::Assignment(assignment_statement) => {
-            walk_assignment_statement(ir, &assignment_statement)
+            walk_assignment_statement(ir, assignment_statement)
         }
 
-        Statement::IfStatement(_) => unimplemented!(),
+        Statement::IfStatement(if_statement) => walk_if_statement(ir, if_statement),
         Statement::BreakStatement => unimplemented!(),
         Statement::ContinueStatement => unimplemented!(),
         Statement::LoopStatement(_) => unimplemented!(),
@@ -139,6 +160,101 @@ fn walk_binary_operation<'a>(
         BinaryOperationType::LeftShift => push_irstatement_leftshift(ir, left, right),
         BinaryOperationType::RightShift => push_irstatement_rightshift(ir, left, right),
     }
+}
+
+fn walk_if_statement<'a>(
+    ir: &mut IRState<'a>,
+    if_statement: &'a IfStatement,
+) -> Result<(), SyntaxError> {
+    //
+    // Allocate labels
+    //
+    let if_label = ir.current_label + 1;
+    let first_else_if_label = if_label + 1;
+    let else_label = first_else_if_label + u32::try_from(if_statement.else_if.len()).unwrap();
+    let done_label = else_label + 1;
+    ir.current_label = done_label;
+
+    //
+    // CONDITIONS
+    //
+
+    // If
+    let if_condition = walk_expression(ir, &if_statement._if.condition)?;
+
+    ir.statements.push(IRStatement::ConditionalBranch(
+        IRConditionalBranchStatement {
+            register: if_condition,
+            label: if_label,
+        },
+    ));
+
+    // Else if
+    let mut current_else_if_label = first_else_if_label;
+    for else_if in &if_statement.else_if {
+        let else_if_condition = walk_expression(ir, &else_if.condition)?;
+
+        ir.statements.push(IRStatement::ConditionalBranch(
+            IRConditionalBranchStatement {
+                register: else_if_condition,
+                label: current_else_if_label,
+            },
+        ));
+
+        current_else_if_label += 1;
+    }
+
+    // Branch to else or done label
+
+    match if_statement._else {
+        Some(_) => ir
+            .statements
+            .push(IRStatement::Branch(IRBranchStatement { label: else_label })),
+        None => ir
+            .statements
+            .push(IRStatement::Branch(IRBranchStatement { label: done_label })),
+    }
+
+    //
+    // BLOCKS
+    //
+
+    // If block
+    ir.statements
+        .push(IRStatement::Label(IRLabelStatement { label: if_label }));
+    walk_block(ir, &if_statement._if.block)?;
+    ir.statements
+        .push(IRStatement::Branch(IRBranchStatement { label: done_label }));
+
+    // Else if blocks
+    let mut current_else_if_label = first_else_if_label;
+    for else_if in &if_statement.else_if {
+        ir.statements.push(IRStatement::Label(IRLabelStatement {
+            label: current_else_if_label,
+        }));
+
+        walk_block(ir, &else_if.block)?;
+
+        ir.statements
+            .push(IRStatement::Branch(IRBranchStatement { label: done_label }));
+
+        current_else_if_label += 1;
+    }
+
+    // Else block
+    ir.statements
+        .push(IRStatement::Label(IRLabelStatement { label: else_label }));
+
+    match &if_statement._else {
+        None => {}
+        Some(block) => walk_block(ir, block)?,
+    }
+
+    // Done label
+    ir.statements
+        .push(IRStatement::Label(IRLabelStatement { label: done_label }));
+
+    Ok(())
 }
 
 fn push_irstatement_add<'a>(
@@ -293,6 +409,7 @@ mod tests {
             statement::{AssignmentStatement, Statement},
         },
         ir::{IRImmediateStatement, IRRegisterStatement, IRStatement},
+        parser::Parser,
     };
 
     use super::get_ir;
@@ -326,5 +443,14 @@ mod tests {
                 }),
             ]
         );
+    }
+
+    #[test]
+    fn test_get_ir_simple_if() {
+        let mut parser = Parser::new("if 1 { x = 2; } else if 1 { x = 3; } else { x = 4; };");
+        let program = parser.get_ast().unwrap().unwrap();
+        let ir = get_ir(&program).unwrap();
+
+        println!("{:#?}", ir);
     }
 }

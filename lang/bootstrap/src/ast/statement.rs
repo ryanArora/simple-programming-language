@@ -36,15 +36,15 @@ pub struct AssignmentStatement {
 
 #[derive(Debug)]
 pub struct IfStatement {
-    _if: ConditionWithBlock,
-    else_if: Vec<ConditionWithBlock>,
-    _else: Option<Block>,
+    pub _if: ConditionWithBlock,
+    pub else_if: Vec<ConditionWithBlock>,
+    pub _else: Option<Block>,
 }
 
 #[derive(Debug)]
 pub struct ConditionWithBlock {
-    condition: Expression,
-    block: Block,
+    pub condition: Expression,
+    pub block: Block,
 }
 
 #[derive(Debug)]
