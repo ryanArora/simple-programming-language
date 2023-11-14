@@ -5,7 +5,7 @@ use crate::{
     ast::{
         block::Block,
         expression::{BinaryOperation, BinaryOperationType, Expression, Literal},
-        statement::{AssignmentStatement, IfStatement, Statement},
+        statement::{AssignmentStatement, IfStatement, LoopStatement, Statement},
     },
     syntax_error::SyntaxError,
 };
@@ -111,7 +111,7 @@ fn walk_statement<'a>(ir: &mut IRState<'a>, statement: &'a Statement) -> Result<
         Statement::IfStatement(if_statement) => walk_if_statement(ir, if_statement),
         Statement::BreakStatement => unimplemented!(),
         Statement::ContinueStatement => unimplemented!(),
-        Statement::LoopStatement(_) => unimplemented!(),
+        Statement::LoopStatement(loop_statement) => walk_loop_statement(ir, loop_statement),
         Statement::WhileStatement(_) => unimplemented!(),
         Statement::Expression(_) => unimplemented!(),
         Statement::EmptyStatement => Ok(()),
@@ -272,6 +272,36 @@ fn walk_if_statement<'a>(
     // Done label
     ir.statements
         .push(IRStatement::Label(IRLabelStatement { label: done_label }));
+
+    Ok(())
+}
+
+fn walk_loop_statement<'a>(
+    ir: &mut IRState<'a>,
+    loop_statement: &'a LoopStatement,
+) -> Result<(), SyntaxError> {
+    let loop_start_label = ir.current_label + 1;
+    let loop_continue_label = loop_start_label + 1;
+    let loop_break_label = loop_continue_label + 1;
+    ir.current_label = loop_break_label;
+
+    ir.statements.push(IRStatement::Label(IRLabelStatement {
+        label: loop_start_label,
+    }));
+
+    walk_block(ir, &loop_statement.block)?;
+
+    ir.statements.push(IRStatement::Label(IRLabelStatement {
+        label: loop_continue_label,
+    }));
+
+    ir.statements.push(IRStatement::Branch(IRBranchStatement {
+        label: loop_start_label,
+    }));
+
+    ir.statements.push(IRStatement::Label(IRLabelStatement {
+        label: loop_break_label,
+    }));
 
     Ok(())
 }
@@ -467,6 +497,17 @@ mod tests {
     #[test]
     fn test_get_ir_simple_if() {
         let mut parser = Parser::new("if (10 + 20 - 30 | 40 & 50 ^ 60 << 70 >> 80) {};");
+        let program = parser.get_ast().unwrap().unwrap();
+        let ir = get_ir(&program).unwrap();
+
+        for stmt in ir {
+            println!("{}", stmt);
+        }
+    }
+
+    #[test]
+    fn test_get_ir_simple_loop() {
+        let mut parser = Parser::new("loop { x = 1; };");
         let program = parser.get_ast().unwrap().unwrap();
         let ir = get_ir(&program).unwrap();
 

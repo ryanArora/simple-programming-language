@@ -23,9 +23,9 @@ pub enum Statement {
 
 #[derive(Debug)]
 pub struct LetStatement {
-    identifier: String,
-    mutable: bool,
-    expression: Option<Expression>,
+    pub identifier: String,
+    pub mutable: bool,
+    pub expression: Option<Expression>,
 }
 
 #[derive(Debug)]
@@ -49,13 +49,13 @@ pub struct ConditionWithBlock {
 
 #[derive(Debug)]
 pub struct LoopStatement {
-    block: Block,
+    pub block: Block,
 }
 
 #[derive(Debug)]
 pub struct WhileStatement {
-    condition: Expression,
-    block: Block,
+    pub condition: Expression,
+    pub block: Block,
 }
 
 impl Parser<'_> {
