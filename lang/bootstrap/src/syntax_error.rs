@@ -25,4 +25,6 @@ pub enum SyntaxError {
     NoExpressionInLetAssignmentStatement,
     NoExpressionInAssignmentStatement,
     UndefinedReference,
+    ContinueStatementOutsideLoop,
+    BreakStatementOutsideLoop,
 }

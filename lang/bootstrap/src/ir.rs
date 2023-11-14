@@ -78,6 +78,8 @@ struct IRState<'a> {
     symbols: HashMap<&'a str, u32>,
     current_register: u32,
     current_label: u32,
+    current_loop_continue_label: Option<u32>,
+    current_loop_break_label: Option<u32>,
 }
 
 pub fn get_ir<'a>(program: &'a Block) -> Result<Vec<IRStatement>, SyntaxError> {
@@ -86,6 +88,8 @@ pub fn get_ir<'a>(program: &'a Block) -> Result<Vec<IRStatement>, SyntaxError> {
         symbols: HashMap::new(),
         current_register: 0,
         current_label: 0,
+        current_loop_continue_label: None,
+        current_loop_break_label: None,
     };
 
     walk_block(&mut ir, program)?;
@@ -109,8 +113,8 @@ fn walk_statement<'a>(ir: &mut IRState<'a>, statement: &'a Statement) -> Result<
         }
 
         Statement::IfStatement(if_statement) => walk_if_statement(ir, if_statement),
-        Statement::BreakStatement => unimplemented!(),
-        Statement::ContinueStatement => unimplemented!(),
+        Statement::BreakStatement => walk_break_statement(ir),
+        Statement::ContinueStatement => walk_continue_statement(ir),
         Statement::LoopStatement(loop_statement) => walk_loop_statement(ir, loop_statement),
         Statement::WhileStatement(_) => unimplemented!(),
         Statement::Expression(_) => unimplemented!(),
@@ -289,7 +293,15 @@ fn walk_loop_statement<'a>(
         label: loop_start_label,
     }));
 
+    let old_loop_continue_label = ir.current_loop_continue_label;
+    let old_loop_break_label = ir.current_loop_break_label;
+    ir.current_loop_continue_label = Some(loop_continue_label);
+    ir.current_loop_break_label = Some(loop_break_label);
+
     walk_block(ir, &loop_statement.block)?;
+
+    ir.current_loop_continue_label = old_loop_continue_label;
+    ir.current_loop_break_label = old_loop_break_label;
 
     ir.statements.push(IRStatement::Label(IRLabelStatement {
         label: loop_continue_label,
@@ -304,6 +316,32 @@ fn walk_loop_statement<'a>(
     }));
 
     Ok(())
+}
+
+fn walk_continue_statement<'a>(ir: &mut IRState<'a>) -> Result<(), SyntaxError> {
+    match ir.current_loop_continue_label {
+        Some(current_loop_continue_label) => {
+            ir.statements.push(IRStatement::Branch(IRBranchStatement {
+                label: current_loop_continue_label,
+            }));
+
+            Ok(())
+        }
+        None => Err(SyntaxError::ContinueStatementOutsideLoop),
+    }
+}
+
+fn walk_break_statement<'a>(ir: &mut IRState<'a>) -> Result<(), SyntaxError> {
+    match ir.current_loop_break_label {
+        Some(current_loop_break_label) => {
+            ir.statements.push(IRStatement::Branch(IRBranchStatement {
+                label: current_loop_break_label,
+            }));
+
+            Ok(())
+        }
+        None => Err(SyntaxError::BreakStatementOutsideLoop),
+    }
 }
 
 fn push_irstatement_add<'a>(
@@ -507,7 +545,7 @@ mod tests {
 
     #[test]
     fn test_get_ir_simple_loop() {
-        let mut parser = Parser::new("loop { x = 1; };");
+        let mut parser = Parser::new("loop { if 1 + 1 { break; }; };");
         let program = parser.get_ast().unwrap().unwrap();
         let ir = get_ir(&program).unwrap();
 
