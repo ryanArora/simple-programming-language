@@ -5,7 +5,7 @@ use crate::{
     ast::{
         block::Block,
         expression::{BinaryOperation, BinaryOperationType, Expression, Literal},
-        statement::{AssignmentStatement, IfStatement, LoopStatement, Statement},
+        statement::{AssignmentStatement, IfStatement, LetStatement, LoopStatement, Statement},
     },
     syntax_error::SyntaxError,
 };
@@ -75,17 +75,45 @@ pub struct IRLabelStatement {
 #[derive(Debug)]
 struct IRState<'a> {
     statements: Vec<IRStatement>,
-    symbols: HashMap<&'a str, u32>,
+    scope: Option<Scope<'a>>,
     current_register: u32,
     current_label: u32,
     current_loop_continue_label: Option<u32>,
     current_loop_break_label: Option<u32>,
 }
+#[derive(Debug, Clone)]
+struct Scope<'a> {
+    previous_scope: Option<Box<Scope<'a>>>,
+    symbols: HashMap<&'a str, u32>,
+}
+
+fn get_identifier_register<'a>(scope: Option<Scope>, identifier: &'a str) -> Option<u32> {
+    let mut current_scope_option = scope;
+    loop {
+        if current_scope_option.is_none() {
+            break;
+        }
+
+        let current_scope = current_scope_option.unwrap();
+
+        match current_scope.symbols.get(identifier) {
+            Some(symbol) => return Some(*symbol),
+            None => {}
+        }
+
+        current_scope_option = match current_scope.previous_scope {
+            Some(scope) => Some(*scope),
+            None => None,
+        };
+    }
+
+    None
+}
 
 pub fn get_ir<'a>(program: &'a Block) -> Result<Vec<IRStatement>, SyntaxError> {
     let mut ir = IRState {
         statements: vec![],
-        symbols: HashMap::new(),
+        scope: None,
         current_register: 0,
         current_label: 0,
         current_loop_continue_label: None,
@@ -97,41 +125,90 @@ pub fn get_ir<'a>(program: &'a Block) -> Result<Vec<IRStatement>, SyntaxError> {
 }
 
 fn walk_block<'a>(ir: &mut IRState<'a>, block: &'a Block) -> Result<(), SyntaxError> {
+    let old_scope = ir.scope.clone();
+
+    ir.scope = match &ir.scope {
+        None => Some(Scope {
+            previous_scope: None,
+            symbols: HashMap::new(),
+        }),
+        Some(scope) => Some(Scope {
+            previous_scope: Some(Box::new(scope.clone())),
+            symbols: HashMap::new(),
+        }),
+    };
+
     for statement in &block.statements {
         walk_statement(ir, statement)?;
     }
+
+    ir.scope = old_scope;
 
     Ok(())
 }
 
 fn walk_statement<'a>(ir: &mut IRState<'a>, statement: &'a Statement) -> Result<(), SyntaxError> {
     match statement {
-        Statement::LetStatement(_) => unimplemented!(),
-
-        Statement::Assignment(assignment_statement) => {
-            walk_assignment_statement(ir, assignment_statement)
-        }
-
-        Statement::IfStatement(if_statement) => walk_if_statement(ir, if_statement),
+        Statement::LetStatement(let_stmt) => walk_let_statement(ir, let_stmt),
+        Statement::Assignment(assignment_stmt) => walk_assignment_statement(ir, assignment_stmt),
+        Statement::IfStatement(if_stmt) => walk_if_statement(ir, if_stmt),
         Statement::BreakStatement => walk_break_statement(ir),
         Statement::ContinueStatement => walk_continue_statement(ir),
-        Statement::LoopStatement(loop_statement) => walk_loop_statement(ir, loop_statement),
+        Statement::LoopStatement(loop_stmt) => walk_loop_statement(ir, loop_stmt),
         Statement::WhileStatement(_) => unimplemented!(),
-        Statement::Expression(_) => unimplemented!(),
+        Statement::Expression(expr) => match walk_expression(ir, expr) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e),
+        },
         Statement::EmptyStatement => Ok(()),
     }
+}
+
+fn walk_let_statement<'a>(
+    ir: &mut IRState<'a>,
+    let_statement: &'a LetStatement,
+) -> Result<(), SyntaxError> {
+    let register = match &let_statement.expression {
+        None => {
+            ir.current_register += 1;
+            ir.current_register
+        }
+        Some(expression) => walk_expression(ir, expression)?,
+    };
+
+    ir.scope
+        .as_mut()
+        .unwrap()
+        .symbols
+        .insert(&let_statement.identifier, register);
+
+    Ok(())
 }
 
 fn walk_assignment_statement<'a>(
     ir: &mut IRState<'a>,
     assignment_statement: &'a AssignmentStatement,
 ) -> Result<(), SyntaxError> {
-    walk_expression(ir, &assignment_statement.expression)?;
+    let rd = match get_identifier_register(ir.scope.clone(), &assignment_statement.identifier) {
+        None => return Err(SyntaxError::AssignedUndeclaredVariable),
+        Some(symbol) => symbol,
+    };
 
-    ir.symbols.insert(
-        assignment_statement.identifier.as_str(),
-        ir.current_register,
-    );
+    let rs1 = walk_expression(ir, &assignment_statement.expression)?;
+
+    ir.current_register += 1;
+
+    ir.statements
+        .push(IRStatement::LoadImmediate(IRImmediateStatement {
+            rd: ir.current_register,
+            imm: 0,
+        }));
+
+    ir.statements.push(IRStatement::Add(IRRegisterStatement {
+        rd,
+        rs1,
+        rs2: ir.current_register,
+    }));
 
     Ok(())
 }
@@ -479,12 +556,10 @@ fn walk_integer_literal<'a>(
 }
 
 fn walk_identifier<'a>(ir: &mut IRState<'a>, identifier: &'a str) -> Result<u32, SyntaxError> {
-    let register = *ir
-        .symbols
-        .get(identifier)
-        .ok_or(SyntaxError::UndefinedReference)?;
-
-    Ok(register)
+    match get_identifier_register(ir.scope.clone(), identifier) {
+        None => Err(SyntaxError::UndefinedReference),
+        Some(register) => Ok(register),
+    }
 }
 
 #[cfg(test)]
@@ -546,6 +621,17 @@ mod tests {
     #[test]
     fn test_get_ir_simple_loop() {
         let mut parser = Parser::new("loop { if 1 + 1 { break; }; };");
+        let program = parser.get_ast().unwrap().unwrap();
+        let ir = get_ir(&program).unwrap();
+
+        for stmt in ir {
+            println!("{}", stmt);
+        }
+    }
+
+    #[test]
+    fn test_get_ir_branched_assignment() {
+        let mut parser = Parser::new("let x; if 1 { x = 1; } else { x = 2; };");
         let program = parser.get_ast().unwrap().unwrap();
         let ir = get_ir(&program).unwrap();
 

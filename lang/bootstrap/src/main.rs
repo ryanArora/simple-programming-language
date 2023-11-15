@@ -29,5 +29,7 @@ fn main() {
     let program = p.get_ast().unwrap().unwrap();
     let ir = get_ir(&program).unwrap();
 
-    println!("{:#?}", ir);
+    for stmt in ir {
+        println!("{}", stmt);
+    }
 }

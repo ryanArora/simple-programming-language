@@ -27,4 +27,5 @@ pub enum SyntaxError {
     UndefinedReference,
     ContinueStatementOutsideLoop,
     BreakStatementOutsideLoop,
+    AssignedUndeclaredVariable,
 }
