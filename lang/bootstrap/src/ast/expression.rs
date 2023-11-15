@@ -52,8 +52,8 @@ pub enum UnaryOperationType {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UnaryOperation {
-    operation_type: UnaryOperationType,
-    expression: Box<Expression>,
+    pub operation_type: UnaryOperationType,
+    pub expression: Box<Expression>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

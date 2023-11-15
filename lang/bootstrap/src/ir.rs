@@ -5,7 +5,10 @@ use crate::{
     ast::{
         block::Block,
         expression::{BinaryOperation, BinaryOperationType, Expression, Literal},
-        statement::{AssignmentStatement, IfStatement, LetStatement, LoopStatement, Statement},
+        statement::{
+            AssignmentStatement, IfStatement, LetStatement, LoopStatement, Statement,
+            WhileStatement,
+        },
     },
     syntax_error::SyntaxError,
 };
@@ -21,7 +24,8 @@ pub enum IRStatement {
     LeftShift(IRRegisterStatement),
     RightShift(IRRegisterStatement),
     Branch(IRBranchStatement),
-    ConditionalBranch(IRConditionalBranchStatement),
+    BranchNotZero(IRConditionalBranchStatement),
+    BranchZero(IRConditionalBranchStatement),
     Label(IRLabelStatement),
 }
 
@@ -37,7 +41,8 @@ impl Display for IRStatement {
             IRStatement::LeftShift(s) => write!(f, "sll t{}, t{}, t{}", s.rd, s.rs1, s.rs2),
             IRStatement::RightShift(s) => write!(f, "srl t{}, t{}, t{}", s.rd, s.rs1, s.rs2),
             IRStatement::Branch(s) => write!(f, "j L{}", s.label),
-            IRStatement::ConditionalBranch(s) => write!(f, "beq t{}, 1, L{}", s.register, s.label),
+            IRStatement::BranchNotZero(s) => write!(f, "bnz t{}, L{}", s.register, s.label),
+            IRStatement::BranchZero(s) => write!(f, "bz t{}, L{}", s.register, s.label),
             IRStatement::Label(s) => write!(f, "L{}:", s.label),
         }
     }
@@ -155,7 +160,7 @@ fn walk_statement<'a>(ir: &mut IRState<'a>, statement: &'a Statement) -> Result<
         Statement::BreakStatement => walk_break_statement(ir),
         Statement::ContinueStatement => walk_continue_statement(ir),
         Statement::LoopStatement(loop_stmt) => walk_loop_statement(ir, loop_stmt),
-        Statement::WhileStatement(_) => unimplemented!(),
+        Statement::WhileStatement(while_stmt) => walk_while_statement(ir, while_stmt),
         Statement::Expression(expr) => match walk_expression(ir, expr) {
             Ok(_) => Ok(()),
             Err(e) => Err(e),
@@ -282,24 +287,22 @@ fn walk_if_statement<'a>(
     // If
     let if_condition = walk_expression(ir, &if_statement._if.condition)?;
 
-    ir.statements.push(IRStatement::ConditionalBranch(
-        IRConditionalBranchStatement {
+    ir.statements
+        .push(IRStatement::BranchNotZero(IRConditionalBranchStatement {
             register: if_condition,
             label: if_label,
-        },
-    ));
+        }));
 
     // Else if
     let mut current_else_if_label = first_else_if_label;
     for else_if in &if_statement.else_if {
         let else_if_condition = walk_expression(ir, &else_if.condition)?;
 
-        ir.statements.push(IRStatement::ConditionalBranch(
-            IRConditionalBranchStatement {
+        ir.statements
+            .push(IRStatement::BranchNotZero(IRConditionalBranchStatement {
                 register: else_if_condition,
                 label: current_else_if_label,
-            },
-        ));
+            }));
 
         current_else_if_label += 1;
     }
@@ -376,6 +379,52 @@ fn walk_loop_statement<'a>(
     ir.current_loop_break_label = Some(loop_break_label);
 
     walk_block(ir, &loop_statement.block)?;
+
+    ir.current_loop_continue_label = old_loop_continue_label;
+    ir.current_loop_break_label = old_loop_break_label;
+
+    ir.statements.push(IRStatement::Label(IRLabelStatement {
+        label: loop_continue_label,
+    }));
+
+    ir.statements.push(IRStatement::Branch(IRBranchStatement {
+        label: loop_start_label,
+    }));
+
+    ir.statements.push(IRStatement::Label(IRLabelStatement {
+        label: loop_break_label,
+    }));
+
+    Ok(())
+}
+
+fn walk_while_statement<'a>(
+    ir: &mut IRState<'a>,
+    while_statement: &'a WhileStatement,
+) -> Result<(), SyntaxError> {
+    let loop_start_label = ir.current_label + 1;
+    let loop_continue_label = loop_start_label + 1;
+    let loop_break_label = loop_continue_label + 1;
+    ir.current_label = loop_break_label;
+
+    ir.statements.push(IRStatement::Label(IRLabelStatement {
+        label: loop_start_label,
+    }));
+
+    let condition_register = walk_expression(ir, &while_statement.condition)?;
+
+    ir.statements
+        .push(IRStatement::BranchZero(IRConditionalBranchStatement {
+            register: condition_register,
+            label: loop_break_label,
+        }));
+
+    let old_loop_continue_label = ir.current_loop_continue_label;
+    let old_loop_break_label = ir.current_loop_break_label;
+    ir.current_loop_continue_label = Some(loop_continue_label);
+    ir.current_loop_break_label = Some(loop_break_label);
+
+    walk_block(ir, &while_statement.block)?;
 
     ir.current_loop_continue_label = old_loop_continue_label;
     ir.current_loop_break_label = old_loop_break_label;
