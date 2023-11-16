@@ -4,7 +4,10 @@ use std::{collections::HashMap, fmt::Display};
 use crate::{
     ast::{
         block::Block,
-        expression::{BinaryOperation, BinaryOperationType, Expression, Literal},
+        expression::{
+            BinaryOperation, BinaryOperationType, Expression, Literal, UnaryOperation,
+            UnaryOperationType,
+        },
         statement::{
             AssignmentStatement, IfStatement, LetStatement, LoopStatement, Statement,
             WhileStatement,
@@ -223,17 +226,10 @@ fn walk_expression<'a>(
     expression: &'a Expression,
 ) -> Result<u32, SyntaxError> {
     match expression {
-        Expression::BinaryOperation(binop) => walk_binary_operation(ir, binop),
-        Expression::UnaryOperation(_) => unimplemented!(),
+        Expression::BinaryOperation(binary_op) => walk_binary_operation(ir, binary_op),
+        Expression::UnaryOperation(unary_op) => walk_unary_operation(ir, unary_op),
         Expression::Literal(literal) => walk_literal(ir, literal),
         Expression::Identifier(identifier) => walk_identifier(ir, identifier),
-    }
-}
-
-fn walk_literal<'a>(ir: &mut IRState<'a>, literal: &'a Literal) -> Result<u32, SyntaxError> {
-    match literal {
-        Literal::StringLiteral(_) => unimplemented!(),
-        Literal::IntegerLiteral(int) => walk_integer_literal(ir, *int),
     }
 }
 
@@ -264,6 +260,86 @@ fn walk_binary_operation<'a>(
         BinaryOperationType::BitwiseXor => push_irstatement_xor(ir, left, right),
         BinaryOperationType::LeftShift => push_irstatement_leftshift(ir, left, right),
         BinaryOperationType::RightShift => push_irstatement_rightshift(ir, left, right),
+    }
+}
+
+fn walk_unary_operation<'a>(
+    ir: &mut IRState<'a>,
+    unary_operation: &'a UnaryOperation,
+) -> Result<u32, SyntaxError> {
+    let expression_register = walk_expression(ir, &unary_operation.expression)?;
+
+    match unary_operation.operation_type {
+        UnaryOperationType::LogicalNot => unimplemented!(),
+        UnaryOperationType::BitwiseNot => {
+            let tmp_register = ir.current_register + 1;
+            let rd = tmp_register + 1;
+            ir.current_register = rd;
+
+            ir.statements
+                .push(IRStatement::LoadImmediate(IRImmediateStatement {
+                    rd: tmp_register,
+                    imm: 0xFFFFFFFFFFFFFFFF,
+                }));
+
+            ir.statements.push(IRStatement::Xor(IRRegisterStatement {
+                rd,
+                rs1: expression_register,
+                rs2: tmp_register,
+            }));
+
+            Ok(rd)
+        }
+        UnaryOperationType::Plus => Ok(expression_register),
+        UnaryOperationType::Minus => {
+            let tmp_register = ir.current_register + 1;
+            let rd = tmp_register + 1;
+            ir.current_register = rd;
+
+            ir.statements
+                .push(IRStatement::LoadImmediate(IRImmediateStatement {
+                    rd: tmp_register,
+                    imm: 0,
+                }));
+
+            ir.statements
+                .push(IRStatement::Subtract(IRRegisterStatement {
+                    rd,
+                    rs1: tmp_register,
+                    rs2: expression_register,
+                }));
+
+            Ok(rd)
+        }
+    }
+}
+
+fn walk_literal<'a>(ir: &mut IRState<'a>, literal: &'a Literal) -> Result<u32, SyntaxError> {
+    match literal {
+        Literal::StringLiteral(_) => unimplemented!(),
+        Literal::IntegerLiteral(int) => walk_integer_literal(ir, *int),
+    }
+}
+
+fn walk_integer_literal<'a>(
+    ir: &mut IRState<'a>,
+    integer_literal: u64,
+) -> Result<u32, SyntaxError> {
+    ir.current_register += 1;
+
+    ir.statements
+        .push(IRStatement::LoadImmediate(IRImmediateStatement {
+            rd: ir.current_register,
+            imm: integer_literal,
+        }));
+
+    Ok(ir.current_register)
+}
+
+fn walk_identifier<'a>(ir: &mut IRState<'a>, identifier: &'a str) -> Result<u32, SyntaxError> {
+    match get_identifier_register(ir.scope.clone(), identifier) {
+        None => Err(SyntaxError::UndefinedReference),
+        Some(register) => Ok(register),
     }
 }
 
@@ -587,28 +663,6 @@ fn push_irstatement_rightshift<'a>(
 
     ir.statements.push(ir_statement);
     Ok(ir.current_register)
-}
-
-fn walk_integer_literal<'a>(
-    ir: &mut IRState<'a>,
-    integer_literal: u64,
-) -> Result<u32, SyntaxError> {
-    ir.current_register += 1;
-
-    ir.statements
-        .push(IRStatement::LoadImmediate(IRImmediateStatement {
-            rd: ir.current_register,
-            imm: integer_literal,
-        }));
-
-    Ok(ir.current_register)
-}
-
-fn walk_identifier<'a>(ir: &mut IRState<'a>, identifier: &'a str) -> Result<u32, SyntaxError> {
-    match get_identifier_register(ir.scope.clone(), identifier) {
-        None => Err(SyntaxError::UndefinedReference),
-        Some(register) => Ok(register),
-    }
 }
 
 #[cfg(test)]
