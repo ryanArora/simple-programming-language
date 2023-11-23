@@ -13,8 +13,8 @@ pub enum Statement {
     LetStatement(LetStatement),
     Assignment(AssignmentStatement),
     IfStatement(IfStatement),
-    BreakStatement,
-    ContinueStatement,
+    BreakStatement(BreakStatement),
+    ContinueStatement(ContinueStatement),
     LoopStatement(LoopStatement),
     WhileStatement(WhileStatement),
     Expression(Expression),
@@ -46,6 +46,11 @@ pub struct ConditionWithBlock {
     pub condition: Expression,
     pub block: Block,
 }
+
+#[derive(Debug)]
+pub struct BreakStatement;
+#[derive(Debug)]
+pub struct ContinueStatement;
 
 #[derive(Debug)]
 pub struct LoopStatement {
@@ -94,9 +99,9 @@ impl Parser<'_> {
         } else if let Some(statement) = self.get_next_if_statement()? {
             next_statement = Some(Statement::IfStatement(statement));
         } else if let Some(_) = self.get_next_break_statement()? {
-            next_statement = Some(Statement::BreakStatement);
+            next_statement = Some(Statement::BreakStatement(BreakStatement));
         } else if let Some(_) = self.get_next_continue_statement()? {
-            next_statement = Some(Statement::ContinueStatement);
+            next_statement = Some(Statement::ContinueStatement(ContinueStatement));
         } else if let Some(statement) = self.get_next_loop_statement()? {
             next_statement = Some(Statement::LoopStatement(statement));
         } else if let Some(statement) = self.get_next_while_statement()? {

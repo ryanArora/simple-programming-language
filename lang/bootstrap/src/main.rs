@@ -11,6 +11,7 @@ use ir::get_ir;
 use parser::Parser;
 use std::fs::read_to_string;
 use std::path::PathBuf;
+use std::rc::Rc;
 
 #[derive(clap::Parser)]
 struct Args {
@@ -26,7 +27,7 @@ fn main() {
     let input_data = read_to_string(args.input_file).unwrap();
 
     let mut p = Parser::new(&input_data);
-    let program = p.get_ast().unwrap().unwrap();
+    let program = Rc::new(p.get_ast().unwrap().unwrap());
     let ir = get_ir(&program).unwrap();
 
     for stmt in ir {

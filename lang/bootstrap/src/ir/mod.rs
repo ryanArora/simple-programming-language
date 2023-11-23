@@ -2,7 +2,6 @@ mod block;
 mod expression;
 mod statement;
 
-use self::block::walk_block;
 use crate::{ast::block::Block, syntax_error::SyntaxError};
 use core::fmt;
 use std::{collections::HashMap, fmt::Display};
@@ -40,6 +39,11 @@ impl Display for IRStatement {
             IRStatement::Label(s) => write!(f, "L{}:", s.label),
         }
     }
+}
+
+trait IRWalkable {
+    type Output;
+    fn walk_ir<'a>(&'a self, ir: &mut IRState<'a>) -> Result<Self::Output, SyntaxError>;
 }
 
 #[derive(Debug, PartialEq)]
@@ -96,7 +100,7 @@ pub fn get_ir<'a>(program: &'a Block) -> Result<Vec<IRStatement>, SyntaxError> {
         current_loop_break_label: None,
     };
 
-    walk_block(&mut ir, program)?;
+    program.walk_ir(&mut ir)?;
     Ok(ir.statements)
 }
 

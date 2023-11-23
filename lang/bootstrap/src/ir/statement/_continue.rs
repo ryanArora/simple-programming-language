@@ -1,17 +1,22 @@
 use crate::{
-    ir::{IRBranchStatement, IRState, IRStatement},
+    ast::statement::ContinueStatement,
+    ir::{IRBranchStatement, IRState, IRStatement, IRWalkable},
     syntax_error::SyntaxError,
 };
 
-pub fn walk_continue_statement<'a>(ir: &mut IRState<'a>) -> Result<(), SyntaxError> {
-    match ir.current_loop_continue_label {
-        Some(current_loop_continue_label) => {
-            ir.statements.push(IRStatement::Branch(IRBranchStatement {
-                label: current_loop_continue_label,
-            }));
+impl IRWalkable for ContinueStatement {
+    type Output = ();
 
-            Ok(())
+    fn walk_ir<'a>(&'a self, ir: &mut IRState<'a>) -> Result<Self::Output, SyntaxError> {
+        match ir.current_loop_continue_label {
+            Some(current_loop_continue_label) => {
+                ir.statements.push(IRStatement::Branch(IRBranchStatement {
+                    label: current_loop_continue_label,
+                }));
+
+                Ok(())
+            }
+            None => Err(SyntaxError::ContinueStatementOutsideLoop),
         }
-        None => Err(SyntaxError::ContinueStatementOutsideLoop),
     }
 }
