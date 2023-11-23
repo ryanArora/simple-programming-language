@@ -13,8 +13,8 @@ pub enum Statement {
     LetStatement(LetStatement),
     Assignment(AssignmentStatement),
     IfStatement(IfStatement),
-    BreakStatement,
-    ContinueStatement,
+    BreakStatement(BreakStatement),
+    ContinueStatement(ContinueStatement),
     LoopStatement(LoopStatement),
     WhileStatement(WhileStatement),
     Expression(Expression),
@@ -23,39 +23,44 @@ pub enum Statement {
 
 #[derive(Debug)]
 pub struct LetStatement {
-    identifier: String,
-    mutable: bool,
-    expression: Option<Expression>,
+    pub identifier: String,
+    pub mutable: bool,
+    pub expression: Option<Expression>,
 }
 
 #[derive(Debug)]
 pub struct AssignmentStatement {
-    identifier: String,
-    expression: Expression,
+    pub identifier: String,
+    pub expression: Expression,
 }
 
 #[derive(Debug)]
 pub struct IfStatement {
-    _if: ConditionWithBlock,
-    else_if: Vec<ConditionWithBlock>,
-    _else: Option<Block>,
+    pub _if: ConditionWithBlock,
+    pub else_if: Vec<ConditionWithBlock>,
+    pub _else: Option<Block>,
 }
 
 #[derive(Debug)]
 pub struct ConditionWithBlock {
-    condition: Expression,
-    block: Block,
+    pub condition: Expression,
+    pub block: Block,
 }
 
 #[derive(Debug)]
+pub struct BreakStatement;
+#[derive(Debug)]
+pub struct ContinueStatement;
+
+#[derive(Debug)]
 pub struct LoopStatement {
-    block: Block,
+    pub block: Block,
 }
 
 #[derive(Debug)]
 pub struct WhileStatement {
-    condition: Expression,
-    block: Block,
+    pub condition: Expression,
+    pub block: Block,
 }
 
 impl Parser<'_> {
@@ -94,9 +99,9 @@ impl Parser<'_> {
         } else if let Some(statement) = self.get_next_if_statement()? {
             next_statement = Some(Statement::IfStatement(statement));
         } else if let Some(_) = self.get_next_break_statement()? {
-            next_statement = Some(Statement::BreakStatement);
+            next_statement = Some(Statement::BreakStatement(BreakStatement));
         } else if let Some(_) = self.get_next_continue_statement()? {
-            next_statement = Some(Statement::ContinueStatement);
+            next_statement = Some(Statement::ContinueStatement(ContinueStatement));
         } else if let Some(statement) = self.get_next_loop_statement()? {
             next_statement = Some(Statement::LoopStatement(statement));
         } else if let Some(statement) = self.get_next_while_statement()? {

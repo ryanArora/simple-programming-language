@@ -316,6 +316,7 @@ impl Lexer<'_> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn get_tokens(&mut self) -> Result<Vec<Token>, SyntaxError> {
         let mut tokens: Vec<Token> = vec![];
 

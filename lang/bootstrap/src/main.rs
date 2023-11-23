@@ -2,31 +2,35 @@
 
 mod ast;
 mod current_iterator;
+mod ir;
 mod lexer;
 mod parser;
 mod syntax_error;
 
+use ir::get_ir;
 use parser::Parser;
 use std::fs::read_to_string;
 use std::path::PathBuf;
+use std::rc::Rc;
 
 #[derive(clap::Parser)]
 struct Args {
     input_file: PathBuf,
-    #[arg(short)]
+    #[arg(short, default_value = "a.out")]
     output_file: PathBuf,
 }
 
 fn main() {
     let args = <Args as clap::Parser>::parse();
-    println!("input_file: {}", args.input_file.display());
-    println!("output_file: {}", args.output_file.display());
 
     // Read input file into String
     let input_data = read_to_string(args.input_file).unwrap();
 
     let mut p = Parser::new(&input_data);
-    let ast = p.get_ast();
+    let program = Rc::new(p.get_ast().unwrap().unwrap());
+    let ir = get_ir(&program).unwrap();
 
-    println!("{:#?}", ast);
+    for stmt in ir {
+        println!("{}", stmt);
+    }
 }
