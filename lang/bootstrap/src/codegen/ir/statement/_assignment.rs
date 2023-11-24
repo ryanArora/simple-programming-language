@@ -1,6 +1,6 @@
 use crate::{
     ast::statement::AssignmentStatement,
-    ir::{
+    codegen::ir::{
         get_identifier_register, IRImmediateStatement, IRRegisterStatement, IRState, IRStatement,
         IRWalkable,
     },

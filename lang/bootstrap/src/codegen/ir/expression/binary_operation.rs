@@ -1,6 +1,6 @@
 use crate::{
     ast::expression::{BinaryOperation, BinaryOperationType},
-    ir::{IRRegisterStatement, IRState, IRStatement, IRWalkable},
+    codegen::ir::{IRRegisterStatement, IRState, IRStatement, IRWalkable},
     syntax_error::SyntaxError,
 };
 

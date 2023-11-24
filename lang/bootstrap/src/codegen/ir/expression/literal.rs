@@ -1,6 +1,6 @@
 use crate::{
     ast::expression::Literal,
-    ir::{IRImmediateStatement, IRState, IRStatement, IRWalkable},
+    codegen::ir::{IRImmediateStatement, IRState, IRStatement, IRWalkable},
     syntax_error::SyntaxError,
 };
 

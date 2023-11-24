@@ -1,6 +1,6 @@
 use crate::{
     ast::statement::IfStatement,
-    ir::{
+    codegen::ir::{
         IRBranchStatement, IRConditionalBranchStatement, IRLabelStatement, IRState, IRStatement,
         IRWalkable,
     },

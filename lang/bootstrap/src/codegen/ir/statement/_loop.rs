@@ -1,6 +1,6 @@
 use crate::{
     ast::statement::LoopStatement,
-    ir::{IRBranchStatement, IRLabelStatement, IRState, IRStatement, IRWalkable},
+    codegen::ir::{IRBranchStatement, IRLabelStatement, IRState, IRStatement, IRWalkable},
     syntax_error::SyntaxError,
 };
 

@@ -1,17 +1,16 @@
 #![feature(iter_advance_by)]
 
 mod ast;
+mod codegen;
 mod current_iterator;
-mod ir;
 mod lexer;
 mod parser;
 mod syntax_error;
 
-use ir::get_ir;
 use parser::Parser;
 use std::fs::read_to_string;
 use std::path::PathBuf;
-use std::rc::Rc;
+use syntax_error::SyntaxError;
 
 #[derive(clap::Parser)]
 struct Args {
@@ -20,17 +19,15 @@ struct Args {
     output_file: PathBuf,
 }
 
-fn main() {
+fn main() -> Result<(), SyntaxError> {
     let args = <Args as clap::Parser>::parse();
 
     // Read input file into String
     let input_data = read_to_string(args.input_file).unwrap();
 
     let mut p = Parser::new(&input_data);
-    let program = Rc::new(p.get_ast().unwrap().unwrap());
-    let ir = get_ir(&program).unwrap();
+    let program = p.get_ast()?.unwrap();
+    let code = codegen::get_code(&program)?;
 
-    for stmt in ir {
-        println!("{}", stmt);
-    }
+    Ok(())
 }

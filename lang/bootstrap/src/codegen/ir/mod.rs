@@ -20,6 +20,8 @@ pub enum IRStatement {
     BranchNotZero(IRConditionalBranchStatement),
     BranchZero(IRConditionalBranchStatement),
     Label(IRLabelStatement),
+    Push(IRPushStatement),
+    Pop(IRPopStatement),
 }
 
 impl Display for IRStatement {
@@ -37,6 +39,8 @@ impl Display for IRStatement {
             IRStatement::BranchNotZero(s) => write!(f, "bnz t{}, L{}", s.register, s.label),
             IRStatement::BranchZero(s) => write!(f, "bz t{}, L{}", s.register, s.label),
             IRStatement::Label(s) => write!(f, "L{}:", s.label),
+            IRStatement::Push(s) => write!(f, "push t{}", s.register),
+            IRStatement::Pop(s) => write!(f, "pop t{}", s.register),
         }
     }
 }
@@ -73,6 +77,16 @@ pub struct IRConditionalBranchStatement {
 #[derive(Debug, PartialEq)]
 pub struct IRLabelStatement {
     label: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct IRPushStatement {
+    register: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct IRPopStatement {
+    register: u32,
 }
 
 #[derive(Debug)]
@@ -135,7 +149,7 @@ mod tests {
             expression::{BinaryOperation, BinaryOperationType, Expression, Literal},
             statement::{AssignmentStatement, Statement},
         },
-        ir::{IRImmediateStatement, IRRegisterStatement, IRStatement},
+        codegen::ir::{IRImmediateStatement, IRRegisterStatement, IRStatement},
         parser::Parser,
     };
 

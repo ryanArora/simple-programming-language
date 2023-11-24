@@ -1,6 +1,6 @@
 use crate::{
     ast::expression::{UnaryOperation, UnaryOperationType},
-    ir::{IRImmediateStatement, IRRegisterStatement, IRState, IRStatement, IRWalkable},
+    codegen::ir::{IRImmediateStatement, IRRegisterStatement, IRState, IRStatement, IRWalkable},
     syntax_error::SyntaxError,
 };
 

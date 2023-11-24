@@ -1,6 +1,6 @@
 use crate::{
     ast::statement::ContinueStatement,
-    ir::{IRBranchStatement, IRState, IRStatement, IRWalkable},
+    codegen::ir::{IRBranchStatement, IRState, IRStatement, IRWalkable},
     syntax_error::SyntaxError,
 };
 
