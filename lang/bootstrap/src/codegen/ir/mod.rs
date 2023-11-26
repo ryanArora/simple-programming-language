@@ -19,8 +19,8 @@ impl fmt::Display for IR {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct Register(u32);
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Register(pub u32);
 impl fmt::Display for Register {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "r{}", self.0)
