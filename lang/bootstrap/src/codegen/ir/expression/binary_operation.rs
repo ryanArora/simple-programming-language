@@ -1,6 +1,6 @@
 use crate::{
     ast::expression::{BinaryOperation, BinaryOperationType},
-    codegen::ir::{IRRegisterStatement, IRState, IRStatement, IRWalkable},
+    codegen::ir::{IRState, IRStatement, IRWalkable, Register},
     syntax_error::SyntaxError,
 };
 
@@ -12,8 +12,69 @@ impl IRWalkable for BinaryOperation {
         let right = self.right_expression.walk_ir(ir)?;
 
         match self.operation_type {
-            BinaryOperationType::Add => push_irstatement_add(ir, left, right),
-            BinaryOperationType::Subtract => push_irstatement_sub(ir, left, right),
+            BinaryOperationType::Add => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::Add {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
+            BinaryOperationType::Subtract => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::Subtract {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
+            BinaryOperationType::BitwiseAnd => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::And {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
+            BinaryOperationType::BitwiseOr => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::Or {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
+            BinaryOperationType::BitwiseXor => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::Xor {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
+            BinaryOperationType::LeftShift => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::LeftShift {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
+            BinaryOperationType::RightShift => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::RightShift {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
             BinaryOperationType::Multiply => unimplemented!(),
             BinaryOperationType::Divide => unimplemented!(),
             BinaryOperationType::Modulus => unimplemented!(),
@@ -26,130 +87,6 @@ impl IRWalkable for BinaryOperation {
             BinaryOperationType::Less => unimplemented!(),
             BinaryOperationType::LogicalAnd => unimplemented!(),
             BinaryOperationType::LogicalOr => unimplemented!(),
-            BinaryOperationType::BitwiseAnd => push_irstatement_and(ir, left, right),
-            BinaryOperationType::BitwiseOr => push_irstatement_or(ir, left, right),
-            BinaryOperationType::BitwiseXor => push_irstatement_xor(ir, left, right),
-            BinaryOperationType::LeftShift => push_irstatement_leftshift(ir, left, right),
-            BinaryOperationType::RightShift => push_irstatement_rightshift(ir, left, right),
         }
     }
-}
-
-fn push_irstatement_add<'a>(
-    ir: &mut IRState<'a>,
-    left_register: u32,
-    right_register: u32,
-) -> Result<u32, SyntaxError> {
-    ir.current_register += 1;
-
-    let ir_statement = IRStatement::Add(IRRegisterStatement {
-        rd: ir.current_register,
-        rs1: left_register,
-        rs2: right_register,
-    });
-
-    ir.statements.push(ir_statement);
-    Ok(ir.current_register)
-}
-
-fn push_irstatement_sub<'a>(
-    ir: &mut IRState<'a>,
-    left_register: u32,
-    right_register: u32,
-) -> Result<u32, SyntaxError> {
-    ir.current_register += 1;
-
-    let ir_statement = IRStatement::Subtract(IRRegisterStatement {
-        rd: ir.current_register,
-        rs1: left_register,
-        rs2: right_register,
-    });
-
-    ir.statements.push(ir_statement);
-    Ok(ir.current_register)
-}
-
-fn push_irstatement_and<'a>(
-    ir: &mut IRState<'a>,
-    left_register: u32,
-    right_register: u32,
-) -> Result<u32, SyntaxError> {
-    ir.current_register += 1;
-
-    let ir_statement = IRStatement::And(IRRegisterStatement {
-        rd: ir.current_register,
-        rs1: left_register,
-        rs2: right_register,
-    });
-
-    ir.statements.push(ir_statement);
-    Ok(ir.current_register)
-}
-
-fn push_irstatement_or<'a>(
-    ir: &mut IRState<'a>,
-    left_register: u32,
-    right_register: u32,
-) -> Result<u32, SyntaxError> {
-    ir.current_register += 1;
-
-    let ir_statement = IRStatement::Or(IRRegisterStatement {
-        rd: ir.current_register,
-        rs1: left_register,
-        rs2: right_register,
-    });
-
-    ir.statements.push(ir_statement);
-    Ok(ir.current_register)
-}
-
-fn push_irstatement_xor<'a>(
-    ir: &mut IRState<'a>,
-    left_register: u32,
-    right_register: u32,
-) -> Result<u32, SyntaxError> {
-    ir.current_register += 1;
-
-    let ir_statement = IRStatement::Xor(IRRegisterStatement {
-        rd: ir.current_register,
-        rs1: left_register,
-        rs2: right_register,
-    });
-
-    ir.statements.push(ir_statement);
-    Ok(ir.current_register)
-}
-
-fn push_irstatement_leftshift<'a>(
-    ir: &mut IRState<'a>,
-    left_register: u32,
-    right_register: u32,
-) -> Result<u32, SyntaxError> {
-    ir.current_register += 1;
-
-    let ir_statement = IRStatement::LeftShift(IRRegisterStatement {
-        rd: ir.current_register,
-        rs1: left_register,
-        rs2: right_register,
-    });
-
-    ir.statements.push(ir_statement);
-    Ok(ir.current_register)
-}
-
-fn push_irstatement_rightshift<'a>(
-    ir: &mut IRState<'a>,
-    left_register: u32,
-    right_register: u32,
-) -> Result<u32, SyntaxError> {
-    ir.current_register += 1;
-
-    let ir_statement = IRStatement::RightShift(IRRegisterStatement {
-        rd: ir.current_register,
-        rs1: left_register,
-        rs2: right_register,
-    });
-
-    ir.statements.push(ir_statement);
-    Ok(ir.current_register)
 }

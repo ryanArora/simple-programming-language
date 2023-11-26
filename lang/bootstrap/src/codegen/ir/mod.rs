@@ -7,40 +7,114 @@ use core::fmt;
 use std::{collections::HashMap, fmt::Display};
 
 #[derive(Debug, PartialEq)]
+pub struct IR {
+    pub statements: Vec<IRStatement>,
+}
+impl fmt::Display for IR {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for statement in &self.statements {
+            writeln!(f, "{}", statement)?
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Register(u32);
+impl fmt::Display for Register {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "r{}", self.0)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Label(u32);
+impl fmt::Display for Label {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "L{}", self.0)
+    }
+}
+
+#[derive(Debug, PartialEq)]
 pub enum IRStatement {
-    LoadImmediate(IRImmediateStatement),
-    Add(IRRegisterStatement),
-    Subtract(IRRegisterStatement),
-    And(IRRegisterStatement),
-    Or(IRRegisterStatement),
-    Xor(IRRegisterStatement),
-    LeftShift(IRRegisterStatement),
-    RightShift(IRRegisterStatement),
-    Branch(IRBranchStatement),
-    BranchNotZero(IRConditionalBranchStatement),
-    BranchZero(IRConditionalBranchStatement),
-    Label(IRLabelStatement),
-    Push(IRPushStatement),
-    Pop(IRPopStatement),
+    LoadImmediate {
+        rd: Register,
+        imm: u64,
+    },
+    Add {
+        rd: Register,
+        rs1: Register,
+        rs2: Register,
+    },
+    Subtract {
+        rd: Register,
+        rs1: Register,
+        rs2: Register,
+    },
+    And {
+        rd: Register,
+        rs1: Register,
+        rs2: Register,
+    },
+    Or {
+        rd: Register,
+        rs1: Register,
+        rs2: Register,
+    },
+    Xor {
+        rd: Register,
+        rs1: Register,
+        rs2: Register,
+    },
+    LeftShift {
+        rd: Register,
+        rs1: Register,
+        rs2: Register,
+    },
+    RightShift {
+        rd: Register,
+        rs1: Register,
+        rs2: Register,
+    },
+    Branch {
+        label: Label,
+    },
+    BranchNotZero {
+        rs1: Register,
+        label: Label,
+    },
+    BranchZero {
+        rs1: Register,
+        label: Label,
+    },
+    Label {
+        label: Label,
+    },
+    Push {
+        rs1: Register,
+    },
+    Pop {
+        rs1: Register,
+    },
 }
 
 impl Display for IRStatement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            IRStatement::LoadImmediate(s) => write!(f, "li t{}, {}", s.rd, s.imm),
-            IRStatement::Add(s) => write!(f, "add t{}, t{}, t{}", s.rd, s.rs1, s.rs2),
-            IRStatement::Subtract(s) => write!(f, "sub t{}, t{}, t{}", s.rd, s.rs1, s.rs2),
-            IRStatement::And(s) => write!(f, "and t{}, t{}, t{}", s.rd, s.rs1, s.rs2),
-            IRStatement::Or(s) => write!(f, "or t{}, t{}, t{}", s.rd, s.rs1, s.rs2),
-            IRStatement::Xor(s) => write!(f, "xor t{}, t{}, t{}", s.rd, s.rs1, s.rs2),
-            IRStatement::LeftShift(s) => write!(f, "sll t{}, t{}, t{}", s.rd, s.rs1, s.rs2),
-            IRStatement::RightShift(s) => write!(f, "srl t{}, t{}, t{}", s.rd, s.rs1, s.rs2),
-            IRStatement::Branch(s) => write!(f, "j L{}", s.label),
-            IRStatement::BranchNotZero(s) => write!(f, "bnz t{}, L{}", s.register, s.label),
-            IRStatement::BranchZero(s) => write!(f, "bz t{}, L{}", s.register, s.label),
-            IRStatement::Label(s) => write!(f, "L{}:", s.label),
-            IRStatement::Push(s) => write!(f, "push t{}", s.register),
-            IRStatement::Pop(s) => write!(f, "pop t{}", s.register),
+            IRStatement::LoadImmediate { rd, imm } => write!(f, "li {}, {}", rd, imm),
+            IRStatement::Add { rd, rs1, rs2 } => write!(f, "add {}, {}, {}", rd, rs1, rs2),
+            IRStatement::Subtract { rd, rs1, rs2 } => write!(f, "sub {}, {}, {}", rd, rs1, rs2),
+            IRStatement::And { rd, rs1, rs2 } => write!(f, "and {}, {}, {}", rd, rs1, rs2),
+            IRStatement::Or { rd, rs1, rs2 } => write!(f, "or {}, {}, {}", rd, rs1, rs2),
+            IRStatement::Xor { rd, rs1, rs2 } => write!(f, "xor {}, {}, {}", rd, rs1, rs2),
+            IRStatement::LeftShift { rd, rs1, rs2 } => write!(f, "sll {}, {}, {}", rd, rs1, rs2),
+            IRStatement::RightShift { rd, rs1, rs2 } => write!(f, "srl {}, {}, {}", rd, rs1, rs2),
+            IRStatement::Branch { label } => write!(f, "j {}", label),
+            IRStatement::BranchNotZero { rs1, label } => write!(f, "bnz {}, {}", rs1, label),
+            IRStatement::BranchZero { rs1, label } => write!(f, "bz {}, {}", rs1, label),
+            IRStatement::Label { label } => write!(f, "{}:", label),
+            IRStatement::Push { rs1 } => write!(f, "push {}", rs1),
+            IRStatement::Pop { rs1 } => write!(f, "pop {}", rs1),
         }
     }
 }
@@ -48,45 +122,6 @@ impl Display for IRStatement {
 trait IRWalkable {
     type Output;
     fn walk_ir<'a>(&'a self, ir: &mut IRState<'a>) -> Result<Self::Output, SyntaxError>;
-}
-
-#[derive(Debug, PartialEq)]
-pub struct IRImmediateStatement {
-    rd: u32,
-    imm: u64,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct IRRegisterStatement {
-    rd: u32,
-    rs1: u32,
-    rs2: u32,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct IRBranchStatement {
-    label: u32,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct IRConditionalBranchStatement {
-    register: u32,
-    label: u32,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct IRLabelStatement {
-    label: u32,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct IRPushStatement {
-    register: u32,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct IRPopStatement {
-    register: u32,
 }
 
 #[derive(Debug)]
@@ -104,7 +139,7 @@ struct Scope<'a> {
     symbols: HashMap<&'a str, u32>,
 }
 
-pub fn get_ir<'a>(program: &'a Block) -> Result<Vec<IRStatement>, SyntaxError> {
+pub fn get_ir<'a>(program: &'a Block) -> Result<IR, SyntaxError> {
     let mut ir = IRState {
         statements: vec![],
         scope: None,
@@ -115,7 +150,9 @@ pub fn get_ir<'a>(program: &'a Block) -> Result<Vec<IRStatement>, SyntaxError> {
     };
 
     program.walk_ir(&mut ir)?;
-    Ok(ir.statements)
+    Ok(IR {
+        statements: ir.statements,
+    })
 }
 
 fn get_identifier_register<'a>(scope: Option<Scope>, identifier: &'a str) -> Option<u32> {
@@ -149,7 +186,7 @@ mod tests {
             expression::{BinaryOperation, BinaryOperationType, Expression, Literal},
             statement::{AssignmentStatement, Statement},
         },
-        codegen::ir::{IRImmediateStatement, IRRegisterStatement, IRStatement},
+        codegen::ir::{IRStatement, Register, IR},
         parser::Parser,
     };
 
@@ -174,15 +211,23 @@ mod tests {
 
         assert_eq!(
             ir,
-            vec![
-                IRStatement::LoadImmediate(IRImmediateStatement { rd: 1, imm: 1 }),
-                IRStatement::LoadImmediate(IRImmediateStatement { rd: 2, imm: 2 }),
-                IRStatement::Add(IRRegisterStatement {
-                    rd: 3,
-                    rs1: 1,
-                    rs2: 2,
-                }),
-            ]
+            IR {
+                statements: vec![
+                    IRStatement::LoadImmediate {
+                        rd: Register(1),
+                        imm: 1
+                    },
+                    IRStatement::LoadImmediate {
+                        rd: Register(2),
+                        imm: 2
+                    },
+                    IRStatement::Add {
+                        rd: Register(3),
+                        rs1: Register(1),
+                        rs2: Register(2),
+                    },
+                ]
+            },
         );
     }
 
@@ -192,7 +237,7 @@ mod tests {
         let program = parser.get_ast().unwrap().unwrap();
         let ir = get_ir(&program).unwrap();
 
-        for stmt in ir {
+        for stmt in ir.statements {
             println!("{}", stmt);
         }
     }
@@ -203,7 +248,7 @@ mod tests {
         let program = parser.get_ast().unwrap().unwrap();
         let ir = get_ir(&program).unwrap();
 
-        for stmt in ir {
+        for stmt in ir.statements {
             println!("{}", stmt);
         }
     }
@@ -214,7 +259,7 @@ mod tests {
         let program = parser.get_ast().unwrap().unwrap();
         let ir = get_ir(&program).unwrap();
 
-        for stmt in ir {
+        for stmt in ir.statements {
             println!("{}", stmt);
         }
     }

@@ -1,6 +1,6 @@
 use crate::{
     ast::statement::LoopStatement,
-    codegen::ir::{IRBranchStatement, IRLabelStatement, IRState, IRStatement, IRWalkable},
+    codegen::ir::{IRState, IRStatement, IRWalkable, Label},
     syntax_error::SyntaxError,
 };
 
@@ -13,9 +13,9 @@ impl IRWalkable for LoopStatement {
         let loop_break_label = loop_continue_label + 1;
         ir.current_label = loop_break_label;
 
-        ir.statements.push(IRStatement::Label(IRLabelStatement {
-            label: loop_start_label,
-        }));
+        ir.statements.push(IRStatement::Label {
+            label: Label(loop_start_label),
+        });
 
         let old_loop_continue_label = ir.current_loop_continue_label;
         let old_loop_break_label = ir.current_loop_break_label;
@@ -27,17 +27,17 @@ impl IRWalkable for LoopStatement {
         ir.current_loop_continue_label = old_loop_continue_label;
         ir.current_loop_break_label = old_loop_break_label;
 
-        ir.statements.push(IRStatement::Label(IRLabelStatement {
-            label: loop_continue_label,
-        }));
+        ir.statements.push(IRStatement::Label {
+            label: Label(loop_continue_label),
+        });
 
-        ir.statements.push(IRStatement::Branch(IRBranchStatement {
-            label: loop_start_label,
-        }));
+        ir.statements.push(IRStatement::Branch {
+            label: Label(loop_start_label),
+        });
 
-        ir.statements.push(IRStatement::Label(IRLabelStatement {
-            label: loop_break_label,
-        }));
+        ir.statements.push(IRStatement::Label {
+            label: Label(loop_break_label),
+        });
 
         Ok(())
     }
