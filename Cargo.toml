@@ -1,9 +1,7 @@
 [package]
-name = "lang-bootstrap"
+name = "simple-programming-language"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.98"
 clap = { version = "4.4.7", features = ["derive"] }
-indexmap = "2.1.0"

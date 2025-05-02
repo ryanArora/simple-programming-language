@@ -24,8 +24,8 @@ pub enum Statement {
 #[derive(Debug)]
 pub struct LetStatement {
     pub identifier: String,
-    pub mutable: bool,
     pub expression: Option<Expression>,
+    pub _mutable: bool,
 }
 
 #[derive(Debug)]
@@ -206,7 +206,7 @@ impl Parser<'_> {
 
         Ok(Some(LetStatement {
             identifier,
-            mutable,
+            _mutable: mutable,
             expression,
         }))
     }
