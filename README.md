@@ -11,8 +11,6 @@ It uses a hand-written recursive-descent parser (for flexibility).
 
 ## Examples
 
-`
-
 ```bash
 cargo run ./examples/fib.l
 ```
