@@ -90,13 +90,13 @@ pub enum IRStatement {
     Label {
         label: Label,
     },
-    LoadWord {
+    SpillStore {
         rd: Register,
-        offset: u32,
+        offset: usize,
     },
-    StoreWord {
+    SpillLoad {
         rd: Register,
-        offset: u32,
+        offset: usize,
     },
 }
 
@@ -115,8 +115,8 @@ impl Display for IRStatement {
             IRStatement::BranchNotZero { rs1, label } => write!(f, "bnz {}, {}", rs1, label),
             IRStatement::BranchZero { rs1, label } => write!(f, "bz {}, {}", rs1, label),
             IRStatement::Label { label } => write!(f, "{}:", label),
-            IRStatement::LoadWord { rd, offset } => write!(f, "lw {}, {}", rd, offset),
-            IRStatement::StoreWord { rd, offset } => write!(f, "sw {}, {}", rd, offset),
+            IRStatement::SpillStore { rd, offset } => write!(f, "ss {}, {}", rd, offset),
+            IRStatement::SpillLoad { rd, offset } => write!(f, "sl {}, {}", rd, offset),
         }
     }
 }

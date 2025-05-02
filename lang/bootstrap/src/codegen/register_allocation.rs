@@ -17,6 +17,10 @@ impl fmt::Display for Interval {
     }
 }
 
+// Represents a stack location for spilled registers
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct StackLocation(usize);
+
 pub fn spill_extra_virtual_registers(ir: &mut IR, registers_count: u32) {
     let mut available_registers: IndexMap<Register, bool> = IndexMap::new();
     for i in 0..registers_count {
@@ -45,6 +49,8 @@ pub fn spill_extra_virtual_registers(ir: &mut IR, registers_count: u32) {
 
     let mut active_intervals: Vec<ActiveInterval> = vec![];
     let mut registers: IndexMap<Register, Register> = IndexMap::new();
+    let mut stack_locations: IndexMap<Register, StackLocation> = IndexMap::new();
+    let mut next_stack_location = 0;
 
     for (i_register, i) in &live_intervals {
         active_intervals.retain(|ActiveInterval(j_register, j)| {
@@ -59,7 +65,65 @@ pub fn spill_extra_virtual_registers(ir: &mut IR, registers_count: u32) {
         });
 
         if active_intervals.len() == registers_count.try_into().unwrap() {
-            unimplemented!();
+            let spill = active_intervals.pop().unwrap();
+            if spill.1.end > i.end {
+                // Register assignment for i
+                let spill_reg = registers.get(&spill.0).unwrap().clone();
+                registers.insert(i_register.clone(), spill_reg.clone());
+
+                // Spill the register with the latest end point
+                stack_locations.insert(spill.0.clone(), StackLocation(next_stack_location));
+
+                // Insert SpillStore instruction to save the register value to the stack
+                ir.statements.insert(
+                    i.start,
+                    IRStatement::SpillStore {
+                        rd: registers.get(&spill.0).unwrap().clone(),
+                        offset: next_stack_location,
+                    },
+                );
+
+                // Insert SpillLoad instruction before the register is used again
+                ir.statements.insert(
+                    spill.1.end + 1,
+                    IRStatement::SpillLoad {
+                        rd: registers.get(&spill.0).unwrap().clone(),
+                        offset: next_stack_location,
+                    },
+                );
+
+                next_stack_location += 1;
+
+                // Add i to active, sorted by increasing end point
+                let new_elem = ActiveInterval(i_register.clone(), i.clone());
+                let pos = active_intervals
+                    .binary_search(&new_elem)
+                    .unwrap_or_else(|e| e);
+                active_intervals.insert(pos, new_elem);
+            } else {
+                // Current interval i is spilled immediately
+                stack_locations.insert(i_register.clone(), StackLocation(next_stack_location));
+
+                // Insert SpillStore instruction immediately
+                ir.statements.insert(
+                    i.start,
+                    IRStatement::SpillStore {
+                        rd: registers.get(i_register).unwrap_or(&Register(0)).clone(),
+                        offset: next_stack_location,
+                    },
+                );
+
+                // Insert SpillLoad instruction before the register is used again
+                ir.statements.insert(
+                    i.end + 1,
+                    IRStatement::SpillLoad {
+                        rd: registers.get(i_register).unwrap_or(&Register(0)).clone(),
+                        offset: next_stack_location,
+                    },
+                );
+
+                next_stack_location += 1;
+            }
         } else {
             // register[i] ← a register removed from pool of available registers
             let available_register = available_registers
@@ -137,12 +201,12 @@ pub fn spill_extra_virtual_registers(ir: &mut IR, registers_count: u32) {
             IRStatement::Label { label } => IRStatement::Label {
                 label: label.clone(),
             },
-            IRStatement::LoadWord { rd, offset } => IRStatement::LoadWord {
-                rd: registers.get(rd).unwrap().clone(),
+            IRStatement::SpillStore { rd, offset } => IRStatement::SpillStore {
+                rd: registers.get(rd).unwrap_or(rd).clone(),
                 offset: offset.clone(),
             },
-            IRStatement::StoreWord { rd, offset } => IRStatement::StoreWord {
-                rd: registers.get(rd).unwrap().clone(),
+            IRStatement::SpillLoad { rd, offset } => IRStatement::SpillLoad {
+                rd: registers.get(rd).unwrap_or(rd).clone(),
                 offset: offset.clone(),
             },
         })
@@ -166,8 +230,8 @@ fn get_live_intervals(ir: &IR) -> IndexMap<Register, Interval> {
             IRStatement::BranchNotZero { rs1, label: _ } => vec![rs1],
             IRStatement::BranchZero { rs1, label: _ } => vec![rs1],
             IRStatement::Label { label: _ } => vec![],
-            IRStatement::LoadWord { rd, offset: _ } => vec![rd],
-            IRStatement::StoreWord { rd, offset: _ } => vec![rd],
+            IRStatement::SpillStore { rd, offset: _ } => vec![rd],
+            IRStatement::SpillLoad { rd, offset: _ } => vec![rd],
         };
 
         for register in updated_registers {
@@ -195,13 +259,25 @@ mod tests {
     };
 
     #[test]
-    fn test_spill_extra_virtual_registers() {
+    fn test_spill_extra_virtual_registers_simple() {
         let mut parser = Parser::new("let a = (1 + 2); let b = (3 + 4); let c = a + b;");
         let program = parser.get_ast().unwrap().unwrap();
         let mut ir = codegen::ir::get_ir(&program).unwrap();
-        println!("{}", ir);
+        println!("Before:\n{}", ir);
         codegen::register_allocation::spill_extra_virtual_registers(&mut ir, 8);
-        println!("{}", ir);
+        println!("After:\n{}", ir);
+    }
+
+    #[test]
+    fn test_spill_extra_virtual_registers_complex() {
+        let mut parser = Parser::new(
+            "let a = 1; let b = 1; let c = 1; let d = 1; let e = 1; let f = 1; let g = 1; let h = 1; let i = a + b + c + d + e + f + g + h;",
+        );
+        let program = parser.get_ast().unwrap().unwrap();
+        let mut ir = codegen::ir::get_ir(&program).unwrap();
+        println!("Before:\n{}", ir);
+        codegen::register_allocation::spill_extra_virtual_registers(&mut ir, 8);
+        println!("After:\n{}", ir);
     }
 
     #[test]
