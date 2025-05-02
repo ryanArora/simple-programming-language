@@ -1,3 +1,18 @@
-# `ros` (Ryan's Operating System)
+# Simple Programming Language
 
-This is a toy operating system to help me learn systems programming.
+A minimal programming language implementation with basic features like:
+
+- Variables and assignment
+- Basic arithmetic operations
+- Control flow (if/else, loops)
+- Print statements
+
+It uses a hand-written recursive-descent parser (for flexibility).
+
+## Examples
+
+`
+
+```bash
+cargo run ./examples/fib.l
+```
