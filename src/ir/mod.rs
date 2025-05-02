@@ -180,7 +180,7 @@ mod tests {
         ast::{
             block::Block,
             expression::{BinaryOperation, BinaryOperationType, Expression, Literal},
-            statement::{AssignmentStatement, Statement},
+            statement::{LetStatement, Statement},
         },
         ir::{IRStatement, Register, IR},
         parser::Parser,
@@ -190,13 +190,14 @@ mod tests {
 
     #[test]
     fn test_get_ir() {
-        let stmt = Statement::Assignment(AssignmentStatement {
+        let stmt = Statement::LetStatement(LetStatement {
             identifier: "x".to_string(),
-            expression: Expression::BinaryOperation(BinaryOperation {
+            expression: Some(Expression::BinaryOperation(BinaryOperation {
                 operation_type: BinaryOperationType::Add,
                 left_expression: Box::new(Expression::Literal(Literal::IntegerLiteral(1))),
                 right_expression: Box::new(Expression::Literal(Literal::IntegerLiteral(2))),
-            }),
+            })),
+            _mutable: true,
         });
 
         let program = Block {
