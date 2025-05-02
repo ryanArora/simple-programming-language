@@ -1,6 +1,6 @@
 use crate::{
     ast::statement::IfStatement,
-    codegen::ir::{IRState, IRStatement, IRWalkable, Label, Register},
+    ir::{IRState, IRStatement, IRWalkable, Label, Register},
     syntax_error::SyntaxError,
 };
 
@@ -13,7 +13,7 @@ impl IRWalkable for IfStatement {
         //
         let if_label = ir.current_label + 1;
         let first_else_if_label = if_label + 1;
-        let else_label = first_else_if_label + u32::try_from(self.else_if.len()).unwrap();
+        let else_label = first_else_if_label + usize::try_from(self.else_if.len()).unwrap();
         let done_label = else_label + 1;
         ir.current_label = done_label;
 

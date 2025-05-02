@@ -1,10 +1,10 @@
 use crate::{
-    ast::statement::WhileStatement,
-    codegen::ir::{IRState, IRStatement, IRWalkable, Label, Register},
+    ast::statement::LoopStatement,
+    ir::{IRState, IRStatement, IRWalkable, Label},
     syntax_error::SyntaxError,
 };
 
-impl IRWalkable for WhileStatement {
+impl IRWalkable for LoopStatement {
     type Output = ();
 
     fn walk_ir<'a>(&'a self, ir: &mut IRState<'a>) -> Result<Self::Output, SyntaxError> {
@@ -15,13 +15,6 @@ impl IRWalkable for WhileStatement {
 
         ir.statements.push(IRStatement::Label {
             label: Label(loop_start_label),
-        });
-
-        let condition_register = self.condition.walk_ir(ir)?;
-
-        ir.statements.push(IRStatement::BranchZero {
-            rs1: Register(condition_register),
-            label: Label(loop_break_label),
         });
 
         let old_loop_continue_label = ir.current_loop_continue_label;

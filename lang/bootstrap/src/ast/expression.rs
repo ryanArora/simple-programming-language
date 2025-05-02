@@ -6,10 +6,17 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
+    FunctionCall(FunctionCall),
     BinaryOperation(BinaryOperation),
     UnaryOperation(UnaryOperation),
     Literal(Literal),
     Identifier(String),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct FunctionCall {
+    pub function_name: String,
+    pub argument: Box<Expression>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -129,10 +136,44 @@ fn get_operator_precedence(op: BinaryOperationType) -> u32 {
 
 impl Parser<'_> {
     pub fn get_next_expression(&mut self) -> Result<Option<Expression>, SyntaxError> {
-        match self.get_next_primary()? {
-            Some(primary) => self.get_next_expression_1(primary, 0),
-            None => Ok(None),
+        if let Some(expression) = self.get_next_function_call()? {
+            return Ok(Some(expression));
+        } else if let Some(expression) = self.get_next_primary()? {
+            return self.get_next_expression_1(expression, 0);
         }
+
+        Ok(None)
+    }
+
+    pub fn get_next_function_call(&mut self) -> Result<Option<Expression>, SyntaxError> {
+        let old_lexer = self.lexer.clone();
+
+        let function_name = match self.lexer.get_next_token()? {
+            None => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+            Some(token) => match token {
+                Token::Identifier(identifier) => identifier,
+                _ => {
+                    self.lexer = old_lexer;
+                    return Ok(None);
+                }
+            },
+        };
+
+        let argument = match self.get_next_expression_parens()? {
+            None => {
+                self.lexer = old_lexer;
+                return Ok(None);
+            }
+            Some(expression) => expression,
+        };
+
+        Ok(Some(Expression::FunctionCall(FunctionCall {
+            function_name,
+            argument: Box::new(argument),
+        })))
     }
 
     pub fn get_next_expression_1(

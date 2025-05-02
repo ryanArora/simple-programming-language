@@ -2,8 +2,9 @@
 
 mod arch;
 mod ast;
-mod codegen;
 mod current_iterator;
+mod interp;
+mod ir;
 mod lexer;
 mod parser;
 mod syntax_error;
@@ -31,7 +32,8 @@ fn main() -> Result<(), SyntaxError> {
 
     let mut p = Parser::new(&input_data);
     let program = p.get_ast()?.unwrap();
-    let code = codegen::get_code(&program, args.arch)?;
+    let ir = ir::get_ir(&program)?;
+    interp::interpret(&ir);
 
     Ok(())
 }

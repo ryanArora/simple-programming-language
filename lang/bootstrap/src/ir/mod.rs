@@ -28,7 +28,7 @@ impl fmt::Display for Register {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Label(u32);
+pub struct Label(pub usize);
 impl fmt::Display for Label {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "L{}", self.0)
@@ -90,13 +90,8 @@ pub enum IRStatement {
     Label {
         label: Label,
     },
-    SpillStore {
-        rd: Register,
-        offset: usize,
-    },
-    SpillLoad {
-        rd: Register,
-        offset: usize,
+    Print {
+        rs1: Register,
     },
 }
 
@@ -115,8 +110,7 @@ impl Display for IRStatement {
             IRStatement::BranchNotZero { rs1, label } => write!(f, "bnz {}, {}", rs1, label),
             IRStatement::BranchZero { rs1, label } => write!(f, "bz {}, {}", rs1, label),
             IRStatement::Label { label } => write!(f, "{}:", label),
-            IRStatement::SpillStore { rd, offset } => write!(f, "ss {}, {}", rd, offset),
-            IRStatement::SpillLoad { rd, offset } => write!(f, "sl {}, {}", rd, offset),
+            IRStatement::Print { rs1 } => write!(f, "print {}", rs1),
         }
     }
 }
@@ -131,9 +125,9 @@ struct IRState<'a> {
     statements: Vec<IRStatement>,
     scope: Option<Scope<'a>>,
     current_register: u32,
-    current_label: u32,
-    current_loop_continue_label: Option<u32>,
-    current_loop_break_label: Option<u32>,
+    current_label: usize,
+    current_loop_continue_label: Option<usize>,
+    current_loop_break_label: Option<usize>,
 }
 #[derive(Debug, Clone)]
 struct Scope<'a> {
@@ -188,7 +182,7 @@ mod tests {
             expression::{BinaryOperation, BinaryOperationType, Expression, Literal},
             statement::{AssignmentStatement, Statement},
         },
-        codegen::ir::{IRStatement, Register, IR},
+        ir::{IRStatement, Register, IR},
         parser::Parser,
     };
 

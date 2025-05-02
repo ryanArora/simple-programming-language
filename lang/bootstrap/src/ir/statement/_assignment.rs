@@ -1,6 +1,6 @@
 use crate::{
     ast::statement::AssignmentStatement,
-    codegen::ir::{get_identifier_register, IRState, IRStatement, IRWalkable, Register},
+    ir::{get_identifier_register, IRState, IRStatement, IRWalkable, Register},
     syntax_error::SyntaxError,
 };
 

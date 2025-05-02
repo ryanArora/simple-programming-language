@@ -1,6 +1,6 @@
 use crate::{
     ast::statement::LetStatement,
-    codegen::ir::{IRState, IRWalkable},
+    ir::{IRState, IRWalkable},
     syntax_error::SyntaxError,
 };
 

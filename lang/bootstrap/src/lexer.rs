@@ -63,6 +63,7 @@ pub enum SimpleToken {
     RParen,
     LBrace,
     RBrace,
+    Comma,
 }
 
 struct SimpleTokenMatcher {
@@ -76,7 +77,7 @@ pub struct Lexer<'a> {
     text: CurrentIterator<Chars<'a>>,
 }
 
-const MATCH_TOKENS: [SimpleTokenMatcher; 46] = [
+const MATCH_TOKENS: [SimpleTokenMatcher; 47] = [
     SimpleTokenMatcher {
         token: SimpleToken::Let,
         match_str: "let",
@@ -305,6 +306,11 @@ const MATCH_TOKENS: [SimpleTokenMatcher; 46] = [
     SimpleTokenMatcher {
         token: SimpleToken::RBrace,
         match_str: "}",
+        is_word: false,
+    },
+    SimpleTokenMatcher {
+        token: SimpleToken::Comma,
+        match_str: ",",
         is_word: false,
     },
 ];

@@ -1,4 +1,5 @@
 mod binary_operation;
+mod function_call;
 mod identifier;
 mod literal;
 mod unary_operation;
@@ -11,6 +12,7 @@ impl IRWalkable for Expression {
 
     fn walk_ir<'a>(&'a self, ir: &mut IRState<'a>) -> Result<Self::Output, SyntaxError> {
         match self {
+            Expression::FunctionCall(function_call) => function_call.walk_ir(ir),
             Expression::BinaryOperation(binary_op) => binary_op.walk_ir(ir),
             Expression::UnaryOperation(unary_op) => unary_op.walk_ir(ir),
             Expression::Literal(literal) => literal.walk_ir(ir),
