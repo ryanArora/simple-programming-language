@@ -1,17 +1,12 @@
 {
-    "files.eol": "\n",
-    "files.insertFinalNewline": true,
-    "editor.detectIndentation": false,
-    "editor.useTabStops": true,
-    "editor.insertSpaces": false,
-    "editor.tabSize": 4,
-    "rust-analyzer.linkedProjects": ["lang/bootstrap/Cargo.toml"],
-    "editor.formatOnSave": true,
-    "[rust]": {
-        "editor.defaultFormatter": "rust-lang.rust-analyzer"
-    },
-    "[json][jsonc]": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "prettier.tabWidth": 4
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "editor.detectIndentation": false,
+  "editor.useTabStops": true,
+  "editor.insertSpaces": false,
+  "editor.tabSize": 4,
+  "editor.formatOnSave": true,
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+  }
 }
