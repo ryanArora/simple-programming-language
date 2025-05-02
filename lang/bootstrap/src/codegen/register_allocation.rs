@@ -137,11 +137,13 @@ pub fn spill_extra_virtual_registers(ir: &mut IR, registers_count: u32) {
             IRStatement::Label { label } => IRStatement::Label {
                 label: label.clone(),
             },
-            IRStatement::Push { rs1 } => IRStatement::Push {
-                rs1: registers.get(rs1).unwrap().clone(),
+            IRStatement::LoadWord { rd, offset } => IRStatement::LoadWord {
+                rd: registers.get(rd).unwrap().clone(),
+                offset: offset.clone(),
             },
-            IRStatement::Pop { rs1 } => IRStatement::Pop {
-                rs1: registers.get(rs1).unwrap().clone(),
+            IRStatement::StoreWord { rd, offset } => IRStatement::StoreWord {
+                rd: registers.get(rd).unwrap().clone(),
+                offset: offset.clone(),
             },
         })
         .collect();
@@ -164,8 +166,8 @@ fn get_live_intervals(ir: &IR) -> IndexMap<Register, Interval> {
             IRStatement::BranchNotZero { rs1, label: _ } => vec![rs1],
             IRStatement::BranchZero { rs1, label: _ } => vec![rs1],
             IRStatement::Label { label: _ } => vec![],
-            IRStatement::Push { rs1 } => vec![rs1],
-            IRStatement::Pop { rs1 } => vec![rs1],
+            IRStatement::LoadWord { rd, offset: _ } => vec![rd],
+            IRStatement::StoreWord { rd, offset: _ } => vec![rd],
         };
 
         for register in updated_registers {

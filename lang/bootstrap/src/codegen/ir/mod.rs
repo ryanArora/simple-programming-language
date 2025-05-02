@@ -90,11 +90,13 @@ pub enum IRStatement {
     Label {
         label: Label,
     },
-    Push {
-        rs1: Register,
+    LoadWord {
+        rd: Register,
+        offset: u32,
     },
-    Pop {
-        rs1: Register,
+    StoreWord {
+        rd: Register,
+        offset: u32,
     },
 }
 
@@ -113,8 +115,8 @@ impl Display for IRStatement {
             IRStatement::BranchNotZero { rs1, label } => write!(f, "bnz {}, {}", rs1, label),
             IRStatement::BranchZero { rs1, label } => write!(f, "bz {}, {}", rs1, label),
             IRStatement::Label { label } => write!(f, "{}:", label),
-            IRStatement::Push { rs1 } => write!(f, "push {}", rs1),
-            IRStatement::Pop { rs1 } => write!(f, "pop {}", rs1),
+            IRStatement::LoadWord { rd, offset } => write!(f, "lw {}, {}", rd, offset),
+            IRStatement::StoreWord { rd, offset } => write!(f, "sw {}, {}", rd, offset),
         }
     }
 }
