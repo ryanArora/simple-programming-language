@@ -1,5 +1,3 @@
-#![feature(iter_advance_by)]
-
 mod arch;
 mod ast;
 mod current_iterator;

@@ -343,27 +343,18 @@ impl Lexer<'_> {
 
     // Returns true iff EOF.
     fn consume_whitespace(&mut self) -> bool {
-        let mut it = self.text.clone();
-        let mut i: usize = 0;
-
         loop {
-            i += 1;
-
+            let mut it = self.text.clone();
             match it.next() {
-                None => {
-                    self.text.advance_by(i - 1).unwrap();
-                    return true;
-                }
+                None => return true,
                 Some(ch) => {
                     if !ch.is_whitespace() {
-                        break;
+                        return false;
                     }
+                    self.text.next();
                 }
             }
         }
-
-        self.text.advance_by(i - 1).unwrap();
-        return false;
     }
 
     fn get_next_token_simple(&mut self) -> Result<Option<SimpleToken>, SyntaxError> {
@@ -397,7 +388,9 @@ impl Lexer<'_> {
                 continue;
             }
 
-            self.text.advance_by(token_matcher.match_str.len()).unwrap();
+            for _ in 0..token_matcher.match_str.len() {
+                self.text.next();
+            }
             return Ok(Some(token_matcher.token));
         }
 
@@ -423,7 +416,9 @@ impl Lexer<'_> {
             identifier.push(ch);
         }
 
-        self.text.advance_by(identifier.len()).unwrap();
+        for _ in 0..identifier.len() {
+            self.text.next();
+        }
         Ok(Some(Token::Identifier(identifier)))
     }
 
@@ -471,7 +466,9 @@ impl Lexer<'_> {
             }
 
             if ch == '"' {
-                self.text.advance_by(num_chars + 2).unwrap();
+                for _ in 0..num_chars + 2 {
+                    self.text.next();
+                }
                 return Ok(Some(Token::StringLiteral(str)));
             }
 
@@ -528,7 +525,9 @@ impl Lexer<'_> {
         match u64::from_str_radix(&num_str, radix) {
             Err(_err) => Err(SyntaxError::TooLargeIntegerLiteral),
             Ok(n) => {
-                self.text.advance_by(num_chars).unwrap();
+                for _ in 0..num_chars {
+                    self.text.next();
+                }
                 Ok(Some(Token::IntegerLiteral(n)))
             }
         }
@@ -584,7 +583,9 @@ impl Lexer<'_> {
             return Err(SyntaxError::UnterminatedCharLiteral);
         }
 
-        self.text.advance_by(num_chars).unwrap();
+        for _ in 0..num_chars {
+            self.text.next();
+        }
         Ok(Some(Token::IntegerLiteral(ch.unwrap() as u64)))
     }
 
