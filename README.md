@@ -46,7 +46,7 @@ loop {
 <details>
 <summary>View Abstract Syntax Tree (AST)</summary>
 
-`cargo run examples/fib.l --output-stage ast`
+To generate, run `cargo run examples/fib.l --output-stage ast`.
 
 ```rust
 Block {
@@ -139,7 +139,7 @@ Block {
 <details>
 <summary>View Intermediate Representation (IR)</summary>
 
-`cargo run examples/fib.l --output-stage ir`
+To generate, run `cargo run examples/fib.l --output-stage ir`.
 
 ```
 li r1, 0
