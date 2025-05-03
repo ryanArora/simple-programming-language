@@ -5,6 +5,7 @@ mod interp;
 mod ir;
 mod lexer;
 mod parser;
+mod repl;
 mod syntax_error;
 
 use arch::Arch;
@@ -22,7 +23,7 @@ enum OutputStage {
 
 #[derive(clap::Parser)]
 struct Args {
-    input_file: PathBuf,
+    input_file: Option<PathBuf>,
     #[arg(long, value_enum, default_value_t=Arch::X86_64)]
     arch: Arch,
     #[arg(long, value_enum, default_value_t=OutputStage::Run)]
@@ -32,8 +33,16 @@ struct Args {
 fn main() -> Result<(), SyntaxError> {
     let args = <Args as clap::Parser>::parse();
 
+    let input_file = match args.input_file {
+        Some(file) => file,
+        None => {
+            repl::start_repl();
+            return Ok(());
+        }
+    };
+
     // Read input file into String
-    let input_data = read_to_string(args.input_file).unwrap();
+    let input_data = read_to_string(input_file).unwrap();
 
     let mut p = Parser::new(&input_data);
     let program = p.get_ast()?.unwrap();
