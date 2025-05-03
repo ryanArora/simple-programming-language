@@ -7,11 +7,27 @@ A minimal programming language implementation with basic features like:
 - Control flow (if/else, loops)
 - Print statements
 
-It uses a hand-written recursive-descent parser (for flexibility).
+## How?
 
-## Examples
+A lexer tokenizes the text into a stream of tokens. Then, a hand-written recursive-descent parser converts the text into an Abstract Syntax Tree (AST). Next, the AST is walked to generate a bytecode-like intermediate represnetation. Then, a simple interpreter executes this code.
 
-### Fibonacci Sequence
+## Quick Start
+
+To see the programming language in action, start the REPL with `cargo run`:
+
+```
+Welcome to the Simple Programming Language v0.1.0
+> let a = 1;
+> print(a);
+1
+>
+```
+
+Or, run code from a file with `cargo run <filename>`.
+
+## Example
+
+### Fibonacci Sequence Generator
 
 `cargo run examples/fib.l`
 
@@ -141,3 +157,7 @@ L3:
 ```
 
 </details>
+
+## License
+
+[GPL-3.0](./LICENSE)

@@ -5,7 +5,10 @@ use crate::parser::Parser;
 use std::io::{self, Write};
 
 pub fn start_repl() {
-    println!("Welcome to the REPL!");
+    println!(
+        "Welcome to the Simple Programming Language v{}",
+        env!("CARGO_PKG_VERSION")
+    );
 
     let mut megablock = Block {
         statements: Vec::new(),
