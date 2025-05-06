@@ -37,7 +37,7 @@ impl IRWalkable for UnaryOperation {
 
                 ir.statements.push(IRStatement::LoadImmediate {
                     rd: Register(tmp_register),
-                    imm: 0xFFFFFFFFFFFFFFFF,
+                    imm: 0xFFFFFFFF,
                 });
 
                 ir.statements.push(IRStatement::BitwiseXor {

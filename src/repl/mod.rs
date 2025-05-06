@@ -51,6 +51,7 @@ pub fn start_repl() {
             }
         };
 
-        interp::interpret(&ir);
+        let result = interp::interpret(&ir);
+        println!("{}", result);
     }
 }

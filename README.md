@@ -17,10 +17,8 @@ To see the programming language in action, start the REPL with `cargo run`:
 
 ```
 Welcome to the Simple Programming Language v0.1.0
-> let a = 1;
-> print(a);
-1
->
+> let a = 1 * 32 + 64;
+96
 ```
 
 Or, run code from a file with `cargo run <filename>`.

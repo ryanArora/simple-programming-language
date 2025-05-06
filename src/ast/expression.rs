@@ -66,7 +66,7 @@ pub struct UnaryOperation {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Literal {
     StringLiteral(String),
-    IntegerLiteral(u64),
+    IntegerLiteral(u32),
 }
 
 fn token_to_unary_operation_type(token: Token) -> Option<UnaryOperationType> {

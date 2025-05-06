@@ -7,7 +7,7 @@ pub enum Token {
     SimpleToken(SimpleToken),
     Identifier(String),
     StringLiteral(String),
-    IntegerLiteral(u64),
+    IntegerLiteral(u32),
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -522,7 +522,7 @@ impl Lexer<'_> {
             return Ok(None);
         }
 
-        match u64::from_str_radix(&num_str, radix) {
+        match u32::from_str_radix(&num_str, radix) {
             Err(_err) => Err(SyntaxError::TooLargeIntegerLiteral),
             Ok(n) => {
                 for _ in 0..num_chars {
@@ -586,7 +586,7 @@ impl Lexer<'_> {
         for _ in 0..num_chars {
             self.text.next();
         }
-        Ok(Some(Token::IntegerLiteral(ch.unwrap() as u64)))
+        Ok(Some(Token::IntegerLiteral(ch.unwrap() as u32)))
     }
 
     pub fn get_next_token(&mut self) -> Result<Option<Token>, SyntaxError> {

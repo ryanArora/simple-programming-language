@@ -15,7 +15,7 @@ impl IRWalkable for Literal {
     }
 }
 
-fn walk_integer_literal<'a>(ir: &'a mut IRState, integer_literal: u64) -> Result<u32, SyntaxError> {
+fn walk_integer_literal<'a>(ir: &'a mut IRState, integer_literal: u32) -> Result<u32, SyntaxError> {
     ir.current_register += 1;
 
     ir.statements.push(IRStatement::LoadImmediate {

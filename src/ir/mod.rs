@@ -39,7 +39,7 @@ impl fmt::Display for Label {
 pub enum IRStatement {
     LoadImmediate {
         rd: Register,
-        imm: u64,
+        imm: u32,
     },
     Add {
         rd: Register,
