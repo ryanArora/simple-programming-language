@@ -30,9 +30,117 @@ impl IRWalkable for BinaryOperation {
                 });
                 Ok(ir.current_register)
             }
+            BinaryOperationType::Multiply => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::Multiply {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
+            BinaryOperationType::Divide => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::Divide {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
+            BinaryOperationType::Modulus => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::Modulus {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
+            BinaryOperationType::Exponentiate => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::Exponentiate {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
+            BinaryOperationType::Equal => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::Equal {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
+            BinaryOperationType::NotEqual => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::NotEqual {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
+            BinaryOperationType::GreaterEqual => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::GreaterEqual {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
+            BinaryOperationType::LessEqual => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::LessEqual {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
+            BinaryOperationType::Greater => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::Greater {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
+            BinaryOperationType::Less => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::Less {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
+            BinaryOperationType::LogicalAnd => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::LogicalAnd {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
+            BinaryOperationType::LogicalOr => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::LogicalOr {
+                    rd: Register(ir.current_register),
+                    rs1: Register(left),
+                    rs2: Register(right),
+                });
+                Ok(ir.current_register)
+            }
             BinaryOperationType::BitwiseAnd => {
                 ir.current_register += 1;
-                ir.statements.push(IRStatement::And {
+                ir.statements.push(IRStatement::BitwiseAnd {
                     rd: Register(ir.current_register),
                     rs1: Register(left),
                     rs2: Register(right),
@@ -41,7 +149,7 @@ impl IRWalkable for BinaryOperation {
             }
             BinaryOperationType::BitwiseOr => {
                 ir.current_register += 1;
-                ir.statements.push(IRStatement::Or {
+                ir.statements.push(IRStatement::BitwiseOr {
                     rd: Register(ir.current_register),
                     rs1: Register(left),
                     rs2: Register(right),
@@ -50,7 +158,7 @@ impl IRWalkable for BinaryOperation {
             }
             BinaryOperationType::BitwiseXor => {
                 ir.current_register += 1;
-                ir.statements.push(IRStatement::Xor {
+                ir.statements.push(IRStatement::BitwiseXor {
                     rd: Register(ir.current_register),
                     rs1: Register(left),
                     rs2: Register(right),
@@ -75,18 +183,6 @@ impl IRWalkable for BinaryOperation {
                 });
                 Ok(ir.current_register)
             }
-            BinaryOperationType::Multiply => unimplemented!(),
-            BinaryOperationType::Divide => unimplemented!(),
-            BinaryOperationType::Modulus => unimplemented!(),
-            BinaryOperationType::Exponentiate => unimplemented!(),
-            BinaryOperationType::Equal => unimplemented!(),
-            BinaryOperationType::NotEqual => unimplemented!(),
-            BinaryOperationType::GreaterEqual => unimplemented!(),
-            BinaryOperationType::LessEqual => unimplemented!(),
-            BinaryOperationType::Greater => unimplemented!(),
-            BinaryOperationType::Less => unimplemented!(),
-            BinaryOperationType::LogicalAnd => unimplemented!(),
-            BinaryOperationType::LogicalOr => unimplemented!(),
         }
     }
 }

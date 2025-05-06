@@ -40,7 +40,7 @@ impl IRWalkable for UnaryOperation {
                     imm: 0xFFFFFFFFFFFFFFFF,
                 });
 
-                ir.statements.push(IRStatement::Xor {
+                ir.statements.push(IRStatement::BitwiseXor {
                     rd: Register(rd),
                     rs1: Register(expression_register),
                     rs2: Register(tmp_register),
@@ -48,7 +48,15 @@ impl IRWalkable for UnaryOperation {
 
                 Ok(rd)
             }
-            UnaryOperationType::LogicalNot => unimplemented!(),
+            UnaryOperationType::LogicalNot => {
+                ir.current_register += 1;
+                ir.statements.push(IRStatement::LogicalNot {
+                    rd: Register(ir.current_register),
+                    rs1: Register(expression_register),
+                });
+
+                Ok(ir.current_register)
+            }
         }
     }
 }

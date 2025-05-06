@@ -31,19 +31,96 @@ pub fn interpret(ir: &IR) {
                 registers.insert(rd.clone(), rs1_val - rs2_val);
                 pc += 1;
             }
-            IRStatement::And { rd, rs1, rs2 } => {
+            IRStatement::Multiply { rd, rs1, rs2 } => {
+                let rs1_val = *registers.get(rs1).unwrap();
+                let rs2_val = *registers.get(rs2).unwrap();
+                registers.insert(rd.clone(), rs1_val * rs2_val);
+                pc += 1;
+            }
+            IRStatement::Divide { rd, rs1, rs2 } => {
+                let rs1_val = *registers.get(rs1).unwrap();
+                let rs2_val = *registers.get(rs2).unwrap();
+                registers.insert(rd.clone(), rs1_val / rs2_val);
+                pc += 1;
+            }
+            IRStatement::Modulus { rd, rs1, rs2 } => {
+                let rs1_val = *registers.get(rs1).unwrap();
+                let rs2_val = *registers.get(rs2).unwrap();
+                registers.insert(rd.clone(), rs1_val % rs2_val);
+                pc += 1;
+            }
+            IRStatement::Exponentiate { rd, rs1, rs2 } => {
+                let rs1_val = *registers.get(rs1).unwrap();
+                let rs2_val = *registers.get(rs2).unwrap();
+                registers.insert(rd.clone(), rs1_val.pow(rs2_val as u32));
+                pc += 1;
+            }
+            IRStatement::Equal { rd, rs1, rs2 } => {
+                let rs1_val = *registers.get(rs1).unwrap();
+                let rs2_val = *registers.get(rs2).unwrap();
+                registers.insert(rd.clone(), if rs1_val == rs2_val { 1 } else { 0 });
+                pc += 1;
+            }
+            IRStatement::NotEqual { rd, rs1, rs2 } => {
+                let rs1_val = *registers.get(rs1).unwrap();
+                let rs2_val = *registers.get(rs2).unwrap();
+                registers.insert(rd.clone(), if rs1_val != rs2_val { 1 } else { 0 });
+                pc += 1;
+            }
+            IRStatement::GreaterEqual { rd, rs1, rs2 } => {
+                let rs1_val = *registers.get(rs1).unwrap();
+                let rs2_val = *registers.get(rs2).unwrap();
+                registers.insert(rd.clone(), if rs1_val >= rs2_val { 1 } else { 0 });
+                pc += 1;
+            }
+            IRStatement::LessEqual { rd, rs1, rs2 } => {
+                let rs1_val = *registers.get(rs1).unwrap();
+                let rs2_val = *registers.get(rs2).unwrap();
+                registers.insert(rd.clone(), if rs1_val <= rs2_val { 1 } else { 0 });
+                pc += 1;
+            }
+            IRStatement::Greater { rd, rs1, rs2 } => {
+                let rs1_val = *registers.get(rs1).unwrap();
+                let rs2_val = *registers.get(rs2).unwrap();
+                registers.insert(rd.clone(), if rs1_val > rs2_val { 1 } else { 0 });
+                pc += 1;
+            }
+            IRStatement::Less { rd, rs1, rs2 } => {
+                let rs1_val = *registers.get(rs1).unwrap();
+                let rs2_val = *registers.get(rs2).unwrap();
+                registers.insert(rd.clone(), if rs1_val < rs2_val { 1 } else { 0 });
+                pc += 1;
+            }
+            IRStatement::LogicalAnd { rd, rs1, rs2 } => {
+                let rs1_val = *registers.get(rs1).unwrap();
+                let rs2_val = *registers.get(rs2).unwrap();
+                registers.insert(rd.clone(), if rs1_val != 0 && rs2_val != 0 { 1 } else { 0 });
+                pc += 1;
+            }
+            IRStatement::LogicalOr { rd, rs1, rs2 } => {
+                let rs1_val = *registers.get(rs1).unwrap();
+                let rs2_val = *registers.get(rs2).unwrap();
+                registers.insert(rd.clone(), if rs1_val != 0 || rs2_val != 0 { 1 } else { 0 });
+                pc += 1;
+            }
+            IRStatement::LogicalNot { rd, rs1 } => {
+                let rs1_val = *registers.get(rs1).unwrap();
+                registers.insert(rd.clone(), if rs1_val == 0 { 1 } else { 0 });
+                pc += 1;
+            }
+            IRStatement::BitwiseAnd { rd, rs1, rs2 } => {
                 let rs1_val = *registers.get(rs1).unwrap();
                 let rs2_val = *registers.get(rs2).unwrap();
                 registers.insert(rd.clone(), rs1_val & rs2_val);
                 pc += 1;
             }
-            IRStatement::Or { rd, rs1, rs2 } => {
+            IRStatement::BitwiseOr { rd, rs1, rs2 } => {
                 let rs1_val = *registers.get(rs1).unwrap();
                 let rs2_val = *registers.get(rs2).unwrap();
                 registers.insert(rd.clone(), rs1_val | rs2_val);
                 pc += 1;
             }
-            IRStatement::Xor { rd, rs1, rs2 } => {
+            IRStatement::BitwiseXor { rd, rs1, rs2 } => {
                 let rs1_val = *registers.get(rs1).unwrap();
                 let rs2_val = *registers.get(rs2).unwrap();
                 registers.insert(rd.clone(), rs1_val ^ rs2_val);
